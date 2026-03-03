@@ -24,6 +24,7 @@ const Profile = () => {
   const [gallery, setGallery] = useState([]);
   const [blogs, setBlogs] = useState([]);
   const [isAddingBlog, setIsAddingBlog] = useState(false);
+  const [selectedBlog, setSelectedBlog] = useState(null);
 
   const [selectedArt, setSelectedArt] = useState(null);
 
@@ -46,7 +47,7 @@ const Profile = () => {
       setUser(parsedUser);
       setActiveTab(parsedUser.role === 'artist' ? 'gallery' : 'liked');
       fetchArtworks(parsedUser._id);
-      fetchBlogs(parsedUser._id); 
+      fetchBlogs(parsedUser._id);
     } else {
       navigate('/login');
     }
@@ -62,11 +63,11 @@ const Profile = () => {
   // Create the submit handler
   const handleAddBlog = async (blogData) => {
     try {
-      const res = await axios.post("http://localhost:5000/api/blogs", { 
-          ...blogData, 
-          artist: user._id 
+      const res = await axios.post("http://localhost:5000/api/blogs", {
+        ...blogData,
+        artist: user._id
       });
-      setBlogs([res.data, ...blogs]); 
+      setBlogs([res.data, ...blogs]);
       setIsAddingBlog(false);
     } catch (err) { alert("Failed to publish blog"); }
   };
@@ -184,6 +185,7 @@ const Profile = () => {
           uploadImage={uploadToCloudinary}
         />}
         {isAddingBlog && <AddBlogModal close={() => setIsAddingBlog(false)} save={handleAddBlog} uploadImage={uploadToCloudinary} />}
+          {selectedBlog && <ReadBlogModal blog={selectedBlog} user={user} close={() => setSelectedBlog(null)} />}
 
         {selectedArt && (
           <ArtworkDetailModal
@@ -303,18 +305,29 @@ const Profile = () => {
               )}
 
               {blogs.map(blog => (
-                <div key={blog._id} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow flex flex-col min-h-[250px]">
-                  <img src={blog.coverImage} className="w-full h-40 object-cover rounded-xl mb-4 bg-gray-100" />
-                  <h2 className="text-xl font-bold mb-3 text-gray-900 line-clamp-2">{blog.title}</h2>
-                  
+                <div
+                  key={blog._id}
+                  onClick={() => setSelectedBlog(blog)} 
+                  className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow flex flex-col min-h-[250px] cursor-pointer group" 
+                >
+                  <div className="w-full h-40 bg-gray-100 rounded-xl mb-4 overflow-hidden relative">
+                    {blog.coverImage ? (
+                      <img src={blog.coverImage} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-400">No Cover</div>
+                    )}
+                  </div>
+
+                  <h2 className="text-xl font-bold mb-3 text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors">{blog.title}</h2>
+
                   <div
-                    className="text-gray-500 text-sm line-clamp-3 prose prose-sm overflow-hidden flex-1"
+                    className="text-gray-500 text-sm line-clamp-3 overflow-hidden flex-1"
                     dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(blog.content) }}
                   />
 
                   <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between items-center">
                     <span className="text-xs text-gray-400 font-medium">{new Date(blog.createdAt).toLocaleDateString()}</span>
-                    <button className="text-blue-600 font-bold text-sm hover:underline">Read Story →</button>
+                    <span className="text-blue-600 font-bold text-sm">Read Story →</span>
                   </div>
                 </div>
               ))}
@@ -333,7 +346,7 @@ const Profile = () => {
   );
 };
 
-const StatItem = ({icon: Icon, value, label, color }) => (
+const StatItem = ({ icon: Icon, value, label, color }) => (
   <div className="flex items-center gap-2">
     <Icon size={20} className={color} />
     <span className="font-bold text-gray-900 text-lg">{value}</span>
@@ -377,10 +390,10 @@ const AddBlogModal = ({ close, save, uploadImage }) => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(false);
-  
+
   const [coverFile, setCoverFile] = useState(null);
   const [coverPreview, setCoverPreview] = useState(null);
-  
+
   const quillRef = useRef(null);
 
   const imageHandler = () => {
@@ -423,70 +436,117 @@ const AddBlogModal = ({ close, save, uploadImage }) => {
   const handleSubmit = async () => {
     // 2. REQUIRE COVER FILE
     if (!title.trim() || !content.trim() || !coverFile) return alert("Title, content, and cover image are required.");
-    
+
     setLoading(true);
     try {
-        const coverImageUrl = await uploadImage(coverFile);
-        const cleanContent = DOMPurify.sanitize(content);
-        
-        await save({ title,coverImage: coverImageUrl, content: cleanContent});
+      const coverImageUrl = await uploadImage(coverFile);
+      const cleanContent = DOMPurify.sanitize(content);
+
+      await save({ title, coverImage: coverImageUrl, content: cleanContent });
     } catch (error) {
-        alert("Upload failed. Try again.");
+      alert("Upload failed. Try again.");
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white w-full max-w-4xl h-[85vh] rounded-2xl flex flex-col shadow-2xl overflow-hidden">
-        
+
         <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-           <h2 className="text-xl font-bold">Write a Story</h2>
-           <button onClick={close} className="p-2 hover:bg-gray-200 rounded-full"><X size={20}/></button>
+          <h2 className="text-xl font-bold">Write a Story</h2>
+          <button onClick={close} className="p-2 hover:bg-gray-200 rounded-full"><X size={20} /></button>
         </div>
 
         <div className="flex-1 flex flex-col p-6 overflow-hidden">
-           
-           <div className="mb-6 flex items-center gap-4">
-               <div 
-                  onClick={() => document.getElementById('blog-cover').click()}
-                  className="w-40 h-24 bg-gray-100 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer overflow-hidden hover:bg-gray-200 transition"
-               >
-                   {coverPreview ? <img src={coverPreview} className="w-full h-full object-cover"/> : <span className="text-xs font-bold text-gray-500">+ Add Cover</span>}
-               </div>
-               <input id="blog-cover" type="file" className="hidden" accept="image/*" onChange={(e) => {
-                   setCoverFile(e.target.files[0]);
-                   setCoverPreview(URL.createObjectURL(e.target.files[0]));
-               }} />
-               <p className="text-sm text-gray-400">This image will appear on the blog card.</p>
-           </div>
 
-           <input 
-             type="text" 
-             placeholder="Catchy Blog Title..." 
-             className="w-full text-3xl font-bold mb-6 outline-none placeholder:text-gray-300"
-             value={title} 
-             onChange={e => setTitle(e.target.value)} 
-           />
-           
-           <div className="flex-1 overflow-y-auto pb-10 border border-gray-200 rounded-xl">
-             <ReactQuill 
-               ref={quillRef}
-               theme="snow" 
-               value={content} 
-               onChange={setContent} 
-               modules={modules}
-               className="h-full"
-               placeholder="Tell your creative process..."
-             />
-           </div>
+          <div className="mb-6 flex items-center gap-4">
+            <div
+              onClick={() => document.getElementById('blog-cover').click()}
+              className="w-40 h-24 bg-gray-100 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer overflow-hidden hover:bg-gray-200 transition"
+            >
+              {coverPreview ? <img src={coverPreview} className="w-full h-full object-cover" /> : <span className="text-xs font-bold text-gray-500">+ Add Cover</span>}
+            </div>
+            <input id="blog-cover" type="file" className="hidden" accept="image/*" onChange={(e) => {
+              setCoverFile(e.target.files[0]);
+              setCoverPreview(URL.createObjectURL(e.target.files[0]));
+            }} />
+            <p className="text-sm text-gray-400">This image will appear on the blog card.</p>
+          </div>
+
+          <input
+            type="text"
+            placeholder="Catchy Blog Title..."
+            className="w-full text-3xl font-bold mb-6 outline-none placeholder:text-gray-300"
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+          />
+
+          <div className="flex-1 overflow-y-auto pb-10 border border-gray-200 rounded-xl">
+            <ReactQuill
+              ref={quillRef}
+              theme="snow"
+              value={content}
+              onChange={setContent}
+              modules={modules}
+              className="h-full"
+              placeholder="Tell your creative process..."
+            />
+          </div>
         </div>
 
         <div className="p-6 border-t border-gray-100 flex justify-end">
-           <button onClick={handleSubmit} disabled={loading} className="px-8 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 flex items-center gap-2">
-              {loading ? <Loader2 className="animate-spin"/> : "Publish Story"}
-           </button>
+          <button onClick={handleSubmit} disabled={loading} className="px-8 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 flex items-center gap-2">
+            {loading ? <Loader2 className="animate-spin" /> : "Publish Story"}
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+const ReadBlogModal = ({ blog, close, user }) => {
+  if (!blog) return null;
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={close}>
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }} 
+        animate={{ opacity: 1, y: 0 }} 
+        onClick={e => e.stopPropagation()} 
+        className="bg-white w-full max-w-5xl h-[90vh] rounded-2xl flex flex-col shadow-2xl overflow-hidden relative"
+      >
+        <button onClick={close} className="absolute top-4 right-4 z-10 p-3 bg-white/50 hover:bg-white backdrop-blur-md rounded-full shadow-sm transition-all">
+           <X size={20} className="text-gray-900"/>
+        </button>
+        <div className="flex-1 overflow-y-auto custom-scrollbar pb-20">
+           {blog.coverImage && (
+             <div className="w-full h-64 md:h-80 bg-gray-100 relative">
+                <img src={blog.coverImage} className="w-full h-full object-cover" alt="Blog Cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+             </div>
+           )}
+           <div className="px-8 md:px-16 pt-10">
+              <div className="mb-10">
+                 <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight mb-6">{blog.title}</h1>
+                 
+                 <div className="flex items-center gap-4 border-y border-gray-100 py-4">
+                    <div className="w-12 h-12 rounded-full bg-gray-200 overflow-hidden">
+                       <img src={user?.profile?.avatar_url} className="w-full h-full object-cover" alt="Author" />
+                    </div>
+                    <div>
+                       <h4 className="font-bold text-gray-900">{user?.username || "The Artist"}</h4>
+                       <p className="text-sm text-gray-500">{new Date(blog.createdAt).toLocaleDateString()}</p>
+                    </div>
+                 </div>
+              </div>
+              <div 
+                 className="prose prose-lg max-w-none text-gray-700 leading-relaxed break-words whitespace-pre-wrap overflow-x-hidden w-full"
+                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(blog.content) }}
+              />
+           </div>
+           
         </div>
       </motion.div>
     </div>
