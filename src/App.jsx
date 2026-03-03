@@ -4,6 +4,7 @@ import {User} from 'lucide-react';
 import HeroImage from "./assets/hero.jpg";
 import { useState, useEffect } from 'react';
 import { LogOut } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 
 import Img1 from "./assets/img1.jpg";
@@ -48,7 +49,7 @@ useEffect(() => {
             <div className="hidden md:flex space-x-8">
               <a href="#" className="text-gray-600 hover:text-gray-900 font-medium">Artists</a>
               <a href="#" className="text-gray-600 hover:text-gray-900 font-medium">Gallery</a>
-
+              <Link to="/faq" className="text-gray-600 hover:text-gray-900 font-medium">FAQ</Link>
               <a href="#" className="text-gray-600 hover:text-gray-900 font-medium">Commission</a>
             </div>
 
@@ -181,7 +182,7 @@ useEffect(() => {
           <ArtCard 
             title="Duality of Man" 
             artist="Abhijit Achrekar" 
-            price="699" 
+            price="699"   
             image={Img3}
           />
           <ArtCard 

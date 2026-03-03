@@ -5,6 +5,7 @@ import './index.css'
 import App from './App.jsx'
 import Login from './Login.jsx'
 import Profile from './Profile.jsx'
+import FAQ from './FAQ.jsx'
 import Signup from './SignUp.jsx'
 <Route path="/" element={<App />} />
 
@@ -15,6 +16,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/" element={<App />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/faq" element={<FAQ />} />
         <Route path='/profile' element={<Profile/>} />
       </Routes>
     </BrowserRouter>
