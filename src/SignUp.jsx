@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Palette, User, Camera, ArrowRight, Check , Loader2} from 'lucide-react';
+import { Palette, User, Camera, ArrowRight , Loader2} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Img from "./assets/hero.jpg"
 import axios from 'axios';
@@ -101,7 +101,7 @@ const handleFileChange = (e) => {
     }
   };
   return (
-    <div className="h-screen w-full bg-white overflow-hidden flex font-sans text-gray-900">
+    <div className="h-[calc(100vh-80px)] flex overflow-hidden w-full bg-white overflow-hidden flex font-sans text-gray-900">
       <motion.div 
         layout
         transition={{ duration: 0.8, ease: [0.6, -0.05, 0.01, 0.99] }} 
@@ -280,7 +280,6 @@ const RoleCard = ({ selected, onClick, icon: Icon, title, desc }) => (
     <div className="font-bold text-gray-900">{title}</div>
     <div className="text-xs text-gray-500">{desc}</div>
     
-    {selected && <div className="absolute top-2 right-2 text-blue-600"><Check size={16} /></div>}
   </div>
 );
 

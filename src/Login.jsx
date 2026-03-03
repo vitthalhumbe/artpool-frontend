@@ -49,17 +49,17 @@ const Login = () => {
   };
 
   return (
-    <div className="h-screen w-full bg-white overflow-hidden flex font-sans text-gray-900">
+    <div className="h-[calc(100vh-80px)] flex overflow-hidden w-full bg-white overflow-hidden flex font-sans text-gray-900">
       <motion.div 
         initial={{ opacity: 0, x: -50 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.8 }}
-        className="w-1/2 h-full relative bg-gray-900 hidden md:block"
+        className="w-1/2 h-screen relative bg-gray-900 hidden md:block"
       >
         <img 
           src={LOGIN_IMAGE} 
           alt="Art Gallery"
-          className="w-full h-full object-cover opacity-80"
+          className="w-full h-screen object-cover opacity-80"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent flex flex-col justify-end p-16 text-white">
           <motion.div
@@ -81,10 +81,6 @@ const Login = () => {
         transition={{ duration: 0.8 }}
         className="w-full md:w-1/2 h-full flex flex-col justify-center items-center bg-white p-8 md:p-16 relative"
       >
-          <div className="absolute top-8 left-8 md:left-12 cursor-pointer flex items-center gap-2" onClick={() => navigate('/')}>
-             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">A</div>
-             <span className="text-2xl font-bold tracking-tight">ArtPool</span>
-          </div>
 
           <div className="w-full max-w-md">
             <div className="mb-10">
