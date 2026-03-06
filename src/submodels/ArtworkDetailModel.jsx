@@ -1,6 +1,6 @@
 import  { useState } from 'react';
 import { motion } from 'framer-motion';
-import {Trash2, Eye, Share2, Heart,  X } from 'lucide-react';
+import {Trash2, Eye, Share2, Heart,  X, Briefcase } from 'lucide-react';
 import axios from 'axios';
 
 const ArtworkDetailModal = ({ artwork, currentUser, close, onDelete, onUpdate }) => {
@@ -50,11 +50,11 @@ const ArtworkDetailModal = ({ artwork, currentUser, close, onDelete, onUpdate })
                     <div className="p-6 border-b border-gray-100 flex justify-between">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden">
-                                <img src={isOwner ? currentUser.profile.avatar_url : (artwork.artist?.profile?.avatar_url || currentUser.profile.avatar_url)} className="w-full h-full object-cover" />
+                                <img src={isOwner ? currentUser?.profile?.avatar_url : (artwork.artist?.profile?.avatar_url)} className="w-full h-full object-cover"/>
                             </div>
                             <div>
-                                <h4 className="font-bold text-sm text-gray-900">{isOwner ? "You" : "The Artist"}</h4>
-                                <p className="text-xs text-gray-500">Creator</p>
+                                <h4 className="font-bold text-sm text-gray-900">{isOwner ? "You" : (artwork.artist?.username)}</h4>
+                    <p className="text-xs text-gray-500">Creator</p>
                             </div>
                         </div>
                         <button onClick={close} className="p-2 hover:bg-gray-100 rounded-full"><X size={20} /></button>
