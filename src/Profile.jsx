@@ -4,7 +4,7 @@ import {
   Star, Users, ShoppingBag, Settings, Edit3, BookOpen, X,
   User, Eye, Share2, Camera, Heart, CheckCircle, Clock, Loader2, MapPin, Plus, Image as ImageIcon
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import EditProfileModal from './submodels/EditProfileModel';
 import AddArtworkModal from './submodels/AddArtworkModel';
@@ -13,7 +13,6 @@ import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import DOMPurify from 'dompurify';
 import { useRef, useMemo } from 'react';
-
 const Profile = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
@@ -27,31 +26,63 @@ const Profile = () => {
   const [selectedBlog, setSelectedBlog] = useState(null);
 
   const [selectedArt, setSelectedArt] = useState(null);
+  // Add these near your other state variables at the top of Profile
+  const { id } = useParams(); // Grabs the ID from the URL if it exists
+  const [isOwner, setIsOwner] = useState(true); // Tracks if we are viewing our own profile
 
   useEffect(() => {
+    let isMounted = true;
     const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      const parsedUser = JSON.parse(storedUser);
-      setUser(parsedUser);
-      setActiveTab(parsedUser.role === 'artist' ? 'gallery' : 'liked');
-      fetchArtworks(parsedUser._id);
-    } else {
-      navigate('/login');
-    }
-  }, [navigate]);
+    const loggedInUser = storedUser ? JSON.parse(storedUser) : null;
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      const parsedUser = JSON.parse(storedUser);
-      setUser(parsedUser);
-      setActiveTab(parsedUser.role === 'artist' ? 'gallery' : 'liked');
-      fetchArtworks(parsedUser._id);
-      fetchBlogs(parsedUser._id);
-    } else {
-      navigate('/login');
-    }
-  }, [navigate]);
+    const fetchProfileData = async () => {
+      try {
+        let targetUserId;
+        let profileData;
+
+        // 1. Determine whose profile we are looking at
+        if (id && (!loggedInUser || id !== loggedInUser._id)) {
+          // WE ARE A VIEWER: Fetch the public user data from backend
+          targetUserId = id;
+          if (isMounted) setIsOwner(false);
+
+          // NOTE: You will need a simple GET /api/users/:id route on your backend for this!
+          const userRes = await axios.get(`http://localhost:5000/api/auth/users/${id}`);
+          profileData = userRes.data;
+        } else if (loggedInUser) {
+          // WE ARE THE OWNER: Viewing "My Profile"
+          targetUserId = loggedInUser._id;
+          profileData = loggedInUser;
+          if (isMounted) setIsOwner(true);
+        } else {
+          // Not logged in and no ID provided
+          navigate('/login');
+          return;
+        }
+
+        if (isMounted) {
+          setUser(profileData);
+          setActiveTab(profileData.role === 'artist' ? 'gallery' : 'liked');
+        }
+
+        // 2. Fetch their artworks and blogs
+        const artRes = await axios.get(`http://localhost:5000/api/artworks/user/${targetUserId}`);
+        const blogRes = await axios.get(`http://localhost:5000/api/blogs/user/${targetUserId}`);
+
+        if (isMounted) {
+          setGallery(artRes.data);
+          setBlogs(blogRes.data);
+        }
+      } catch (err) {
+        if (axios.isCancel(err) || err.name === "CanceledError") return;
+        console.error("Fetch failed:", err);
+      }
+    };
+
+    fetchProfileData();
+
+    return () => { isMounted = false; };
+  }, [id, navigate]); // Added 'id' as a dependency so it reloads if the URL changes
 
   const fetchBlogs = async (userId) => {
     try {
@@ -60,7 +91,6 @@ const Profile = () => {
     } catch (err) { console.error("Failed to fetch blogs", err); }
   };
 
-  // Create the submit handler
   const handleAddBlog = async (blogData) => {
     try {
       const res = await axios.post("http://localhost:5000/api/blogs", {
@@ -77,6 +107,9 @@ const Profile = () => {
       const res = await axios.get(`http://localhost:5000/api/artworks/user/${userId}`);
       setGallery(res.data);
     } catch (err) {
+      if (err.code === "ERR_CANCELED" || err.message === "canceled" || err.message === "Request aborted") {
+        return;
+      }
       console.error("Failed to fetch art", err);
     }
   };
@@ -150,17 +183,28 @@ const Profile = () => {
   };
 
   const openArtwork = async (art) => {
+    // 1. Optimistic update opens the modal instantly
     const optimisticArt = {
       ...art,
       stats: { ...art.stats, views: (art.stats?.views || 0) + 1 }
     };
     setSelectedArt(optimisticArt);
+
     try {
+      // 2. Fetch official view count from backend
       const res = await axios.post(`http://localhost:5000/api/artworks/${art._id}/view`);
-      const updatedArt = res.data;
+
+      // 3. THE FIX: Merge the new backend stats with the originally populated artist details!
+      const updatedArt = {
+        ...res.data,
+        artist: art.artist
+      };
+
       setSelectedArt(updatedArt);
       setGallery(prev => prev.map(item => item._id === art._id ? updatedArt : item));
-    } catch (e) { console.error("View sync failed", e); }
+    } catch (e) {
+      console.error("View sync failed", e);
+    }
   };
   const onArtDeleted = (id) => {
     setGallery(gallery.filter(g => g._id !== id));
@@ -185,7 +229,7 @@ const Profile = () => {
           uploadImage={uploadToCloudinary}
         />}
         {isAddingBlog && <AddBlogModal close={() => setIsAddingBlog(false)} save={handleAddBlog} uploadImage={uploadToCloudinary} />}
-          {selectedBlog && <ReadBlogModal blog={selectedBlog} user={user} close={() => setSelectedBlog(null)} />}
+        {selectedBlog && <ReadBlogModal blog={selectedBlog} user={user} close={() => setSelectedBlog(null)} />}
 
         {selectedArt && (
           <ArtworkDetailModal
@@ -202,10 +246,13 @@ const Profile = () => {
           <img src={user.profile?.banner_url || "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?q=80&w=2000&auto=format&fit=crop"} alt="Cover" className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-black/10 group-hover:bg-black/30 transition-colors"></div>
 
-          <label className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white p-2 rounded-lg cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm">
-            {uploading ? <Loader2 size={20} className="animate-spin" /> : <Camera size={20} />}
-            <input type="file" className="hidden" onChange={(e) => handleProfileImageUpload(e, 'banner')} disabled={uploading} />
-          </label>
+          {isOwner && (
+            <label className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white p-2 rounded-lg cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm">
+              {uploading ? <Loader2 size={20} className="animate-spin" /> : <Camera size={20} />}
+              <input type="file" className="hidden" onChange={(e) => handleProfileImageUpload(e, 'banner')} disabled={uploading} />
+            </label>
+          )};
+
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
@@ -214,11 +261,13 @@ const Profile = () => {
               <div className="w-40 h-40 rounded-2xl border-[6px]  border-white shadow-2xl overflow-hidden bg-white">
                 {user.profile?.avatar_url ? <img src={user.profile.avatar_url} alt={user.username} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400"><User size={48} /></div>}
               </div>
-
-              <label className="absolute bottom-2 right-2 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full cursor-pointer shadow-lg transition-transform hover:scale-110">
+              {isOwner && (
+                <label className="absolute bottom-2 right-2 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full cursor-pointer shadow-lg transition-transform hover:scale-110">
                 {uploading ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
                 <input type="file" className="hidden" onChange={(e) => handleProfileImageUpload(e, 'avatar')} disabled={uploading} />
               </label>
+              )}
+              
             </div>
 
             <div className="flex-1 pb-2 mt-20  w-full text-center md:text-left">
@@ -227,20 +276,32 @@ const Profile = () => {
                 <span className="text-blue-600">@{user.username.replace(/\s+/g, '_').toLowerCase()}</span>
                 {user.profile?.location && <span className="flex items-center gap-1"><MapPin size={16} /> {user.profile.location}</span>}
               </div>
-              <div className="flex items-center justify-center md:justify-start gap-6 mt-4">
-                <StatItem icon={Star} value="4.9" label="Rating" color="text-yellow-400" />
-                <div className="w-px h-4 bg-gray-300 hidden md:block"></div>
-                <StatItem icon={Users} value="1.2k" label="Followers" color="text-blue-600" />
-                <div className="w-px h-4 bg-gray-300 hidden md:block"></div>
-                <StatItem icon={ShoppingBag} value={gallery.length || "0"} label="Sold" color="text-purple-600" />
-              </div>
+              {isArtist ? (
+                <>
+                  <div className="flex items-center justify-center md:justify-start gap-6 mt-4">
+                    <StatItem icon={Star} value="4.9" label="Rating" color="text-yellow-400" />
+                    <div className="w-px h-4 bg-gray-300 hidden md:block"></div>
+                    <StatItem icon={Users} value="1.2k" label="Followers" color="text-blue-600" />
+                    <div className="w-px h-4 bg-gray-300 hidden md:block"></div>
+                    <StatItem icon={ShoppingBag} value={gallery.length || "0"} label="Sold" color="text-purple-600" />
+                  </div>
+                </>
+              ) : (
+                <></>
+              )
+
+              }
+
             </div>
 
-            <div className="flex gap-3 mb-2 w-full md:w-auto justify-center">
+            {isOwner && (
+              <div className="flex gap-3 mb-2 w-full md:w-auto justify-center">
               <button onClick={() => setIsEditing(true)} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-semibold flex items-center gap-2 shadow-lg shadow-blue-200"><Edit3 size={18} /> Edit Profile</button>
               <button className="p-3 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600"><Settings size={20} /></button>
               <button onClick={handleShare} className="p-3 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600"><Share2 size={20} /></button>
             </div>
+            )}
+            
           </div>
 
           <div className="flex gap-8 border-b border-gray-200 mt-8 overflow-x-auto no-scrollbar">
@@ -249,7 +310,7 @@ const Profile = () => {
                 <TabButton active={activeTab} name="gallery" label="Gallery" onClick={setActiveTab} />
                 <TabButton active={activeTab} name="blogs" label="Blogs" onClick={setActiveTab} />
                 <TabButton active={activeTab} name="about" label="About" onClick={setActiveTab} />
-                <TabButton active={activeTab} name="dashboard" label="Dashboard" onClick={setActiveTab} />
+                {isOwner &&(<TabButton active={activeTab} name="dashboard" label="Dashboard" onClick={setActiveTab} />)}
               </>
             ) : (
               <>
@@ -268,7 +329,7 @@ const Profile = () => {
 
               <div className="columns-2 md:columns-3 lg:columns-4 gap-4 space-y-4">
 
-                {isArtist && (
+                {isArtist && isOwner && (
                   <div onClick={() => setIsAddingArt(true)} className="break-inside-avoid aspect-square border-3 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors mb-4">
                     <Plus size={32} className="text-gray-400 mb-2" />
                     <span className="font-bold text-gray-500">Add Art</span>
@@ -307,8 +368,8 @@ const Profile = () => {
               {blogs.map(blog => (
                 <div
                   key={blog._id}
-                  onClick={() => setSelectedBlog(blog)} 
-                  className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow flex flex-col min-h-[250px] cursor-pointer group" 
+                  onClick={() => setSelectedBlog(blog)}
+                  className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow flex flex-col min-h-[250px] cursor-pointer group"
                 >
                   <div className="w-full h-40 bg-gray-100 rounded-xl mb-4 overflow-hidden relative">
                     {blog.coverImage ? (
@@ -511,42 +572,42 @@ const ReadBlogModal = ({ blog, close, user }) => {
 
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={close}>
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }} 
-        animate={{ opacity: 1, y: 0 }} 
-        onClick={e => e.stopPropagation()} 
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        onClick={e => e.stopPropagation()}
         className="bg-white w-full max-w-5xl h-[90vh] rounded-2xl flex flex-col shadow-2xl overflow-hidden relative"
       >
         <button onClick={close} className="absolute top-4 right-4 z-10 p-3 bg-white/50 hover:bg-white backdrop-blur-md rounded-full shadow-sm transition-all">
-           <X size={20} className="text-gray-900"/>
+          <X size={20} className="text-gray-900" />
         </button>
         <div className="flex-1 overflow-y-auto custom-scrollbar pb-20">
-           {blog.coverImage && (
-             <div className="w-full h-64 md:h-80 bg-gray-100 relative">
-                <img src={blog.coverImage} className="w-full h-full object-cover" alt="Blog Cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-             </div>
-           )}
-           <div className="px-8 md:px-16 pt-10">
-              <div className="mb-10">
-                 <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight mb-6">{blog.title}</h1>
-                 
-                 <div className="flex items-center gap-4 border-y border-gray-100 py-4">
-                    <div className="w-12 h-12 rounded-full bg-gray-200 overflow-hidden">
-                       <img src={user?.profile?.avatar_url} className="w-full h-full object-cover" alt="Author" />
-                    </div>
-                    <div>
-                       <h4 className="font-bold text-gray-900">{user?.username || "The Artist"}</h4>
-                       <p className="text-sm text-gray-500">{new Date(blog.createdAt).toLocaleDateString()}</p>
-                    </div>
-                 </div>
+          {blog.coverImage && (
+            <div className="w-full h-64 md:h-80 bg-gray-100 relative">
+              <img src={blog.coverImage} className="w-full h-full object-cover" alt="Blog Cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+            </div>
+          )}
+          <div className="px-8 md:px-16 pt-10">
+            <div className="mb-10">
+              <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight mb-6">{blog.title}</h1>
+
+              <div className="flex items-center gap-4 border-y border-gray-100 py-4">
+                <div className="w-12 h-12 rounded-full bg-gray-200 overflow-hidden">
+                  <img src={user?.profile?.avatar_url} className="w-full h-full object-cover" alt="Author" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-gray-900">{user?.username || "The Artist"}</h4>
+                  <p className="text-sm text-gray-500">{new Date(blog.createdAt).toLocaleDateString()}</p>
+                </div>
               </div>
-              <div 
-                 className="prose prose-lg max-w-none text-gray-700 leading-relaxed break-words whitespace-pre-wrap overflow-x-hidden w-full"
-                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(blog.content) }}
-              />
-           </div>
-           
+            </div>
+            <div
+              className="prose prose-lg max-w-none text-gray-700 leading-relaxed break-words whitespace-pre-wrap overflow-x-hidden w-full"
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(blog.content) }}
+            />
+          </div>
+
         </div>
       </motion.div>
     </div>

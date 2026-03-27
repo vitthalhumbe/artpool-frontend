@@ -1,44 +1,20 @@
 import React from 'react';
-import { Search, Star, Menu, X } from 'lucide-react';
-import {User} from 'lucide-react';
-import HeroImage from "./assets/hero.jpg";
-import { useState, useEffect } from 'react';
-import { LogOut } from 'lucide-react';
+import { Search, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-
+import HeroImage from "./assets/hero.jpg";
 import Img1 from "./assets/img1.jpg";
 import Img2 from "./assets/img2.jpg";
 import Img3 from "./assets/img3.jpg";
 import Img4 from "./assets/img4.jpg";
 
-import { useNavigate } from 'react-router-dom';
-
 const Home = () => {
-  const [isMenuOpen, setIsMenuOpen] = React.useState(false);
-  const [user, setUser] = useState(null);
-  const navigate = useNavigate();
-
-useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser)); 
-    }
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null); 
-    navigate('/'); 
-  };
-
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900 selection:bg-blue-100">
 
       <main className="pt-32 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center">
         <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-6">
-          Discover, and Buy Original Art <br className="hidden md:block" /> from Independent Artists.
+          Discover, and Buy Original Art <br className="hidden md:block" /> from World-wide Artists.
         </h1>
         <p className="text-lg text-gray-500 max-w-2xl mx-auto mb-10">
           Buy original art or hire world-class artists to draw custom pieces for you.
@@ -47,22 +23,19 @@ useEffect(() => {
         <div className="max-w-2xl mx-auto relative mb-16">
           <div className="relative flex items-center">
             <Search className="absolute left-4 text-gray-400" size={20} />
-            <input 
-              type="text" 
-              placeholder="Search for oil paintings, sketches, artists..." 
+            <input
+              type="text"
+              placeholder="Search for oil paintings, sketches, artists..."
               className="w-full pl-12 pr-32 py-4 rounded-full border border-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             />
-            <button className="absolute right-2 top-2 bottom-2 bg-primary hover:bg-blue-700 text-white px-8 rounded-full font-medium transition-colors">
+            <button className="absolute right-2 top-2 bottom-2 bg-blue-600 hover:bg-blue-700 text-white px-8 rounded-full font-medium transition-colors">
               Search
             </button>
           </div>
         </div>
+
         <div className="relative rounded-2xl overflow-hidden shadow-xl bg-gray-50 aspect-[16/8]">
-          <img 
-            src={HeroImage}
-            alt="Art showcase" 
-            className="w-full h-full object-cover"
-          />
+          <img src={HeroImage} alt="Art showcase" className="w-full h-full object-cover" />
         </div>
       </main>
 
@@ -89,34 +62,14 @@ useEffect(() => {
             <h2 className="text-3xl font-bold text-gray-900 mb-2">Featured Artworks</h2>
             <p className="text-gray-500">Curated collection of this week's most popular pieces.</p>
           </div>
-          <a href="#" className="text-primary font-semibold hover:underline hidden sm:block">View Gallery →</a>
+          <Link to="/gallery" className="text-blue-600 font-semibold hover:underline hidden sm:block">View Gallery →</Link>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          <ArtCard 
-            title="Blooming in Dignity" 
-            artist="Vitthal Humbe" 
-            price="500" 
-            image={Img1}
-          />
-          <ArtCard 
-            title="The wise women" 
-            artist="Parth Suryawanshi" 
-            price="1000" 
-            image={Img2}
-          />
-          <ArtCard 
-            title="Duality of Man" 
-            artist="Abhijit Achrekar" 
-            price="699"   
-            image={Img3}
-          />
-          <ArtCard 
-            title="Silent Travel" 
-            artist="Yash Gajwani" 
-            price="499" 
-            image={Img4}
-          />
+          <ArtCard title="Blooming in Dignity" artist="Vitthal Humbe" price="500" image={Img1} />
+          <ArtCard title="The wise women" artist="Parth Suryawanshi" price="1000" image={Img2} />
+          <ArtCard title="Duality of Man" artist="Abhijit Achrekar" price="699" image={Img3} />
+          <ArtCard title="Silent Travel" artist="Yash Gajwani" price="499" image={Img4} />
         </div>
       </section>
 
@@ -124,21 +77,9 @@ useEffect(() => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold text-center text-gray-900 mb-16">What our community says</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <TestimonialCard 
-              name="Siddhant Salonkhe"
-              initial="S"
-              quote="I found the suitable artist, who is excited to draw my portrait, and with ease of communication and payments here, On ArtPool"
-            />
-            <TestimonialCard 
-              name="Vedant Swami"
-              initial="V"
-              quote="As an artist, I find Artpool very helpful platform, which enables to showcase my work and expand my network."
-            />
-            <TestimonialCard 
-              name="Viraj Patil"
-              initial="V"
-              quote="I was looking for suitable Art piece for my new apartment wall, This platform helps me to find the painting within my budget."
-            />
+            <TestimonialCard name="Siddhant Salonkhe" initial="S" quote="I found the suitable artist, who is excited to draw my portrait, and with ease of communication and payments here, On ArtPool" />
+            <TestimonialCard name="Vedant Swami" initial="V" quote="As an artist, I find Artpool very helpful platform, which enables to showcase my work and expand my network." />
+            <TestimonialCard name="Viraj Patil" initial="V" quote="I was looking for suitable Art piece for my new apartment wall, This platform helps me to find the painting within my budget." />
           </div>
         </div>
       </section>
@@ -151,12 +92,12 @@ useEffect(() => {
           <a href="#" className="hover:text-gray-900">Terms</a>
           <a href="#" className="hover:text-gray-900">Contact</a>
         </div>
-        <div className="text-sm text-gray-400 mt-4 md:mt-0">© 2026 ArtPool Inc. </div>
+        <div className="text-sm text-gray-400 mt-4 md:mt-0">© 2026 ArtPool Inc.</div>
       </footer>
-
     </div>
   );
 };
+
 const ArtCard = ({ image, title, artist, price }) => (
   <div className="group">
     <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-4">
@@ -186,7 +127,7 @@ const TestimonialCard = ({ name, initial, quote }) => (
     </div>
     <p className="text-gray-600 italic mb-6 leading-relaxed">"{quote}"</p>
     <div className="flex items-center space-x-3">
-      <div className="w-8 h-8 rounded-full bg-blue-100 text-primary flex items-center justify-center font-bold text-xs">
+      <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs">
         {initial}
       </div>
       <span className="font-bold text-sm text-gray-900">{name}</span>

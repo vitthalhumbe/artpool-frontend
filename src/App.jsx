@@ -21,6 +21,7 @@ const App = () => {
           <Route path='/gallery' element={<Gallery />} />
           <Route path='/login' element={<Login />} />
           <Route path='/signup' element={<SignUp />} />
+          <Route path="/profile/:id?" element={<Profile />} />
         </Routes>
       </div>
     </Router>
