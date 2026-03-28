@@ -12,6 +12,7 @@ import ArtworkDetailModal from './submodels/ArtworkDetailModel';
 import CommissionModal from './submodels/CommisionModel';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
+import ReviewSection from './submodels/ReviewSection';
 import DOMPurify from 'dompurify';
 import { useRef, useMemo } from 'react';
 
@@ -31,6 +32,7 @@ const Profile = () => {
   const [followingCount, setFollowingCount] = useState(0);
   const [isFollowing, setIsFollowing] = useState(false);
   const [commissions, setCommissions] = useState([]);
+  const [orders, setOrders] = useState([]);
   // New States for Commissions
   const [showCommissionForm, setShowCommissionForm] = useState(false);
   const [selectedCommission, setSelectedCommission] = useState(null); // For the details popup
@@ -38,13 +40,13 @@ const Profile = () => {
   // Function to Accept or Decline
   const handleUpdateStatus = async (commissionId, newStatus, e) => {
     e.stopPropagation(); // Prevents the card click from opening the details modal
-    
+
     // Optimistic UI update
     setCommissions(prev => prev.map(c => c._id === commissionId ? { ...c, status: newStatus } : c));
 
     try {
       const token = localStorage.getItem('token') || JSON.parse(localStorage.getItem('user'))?.token;
-      await axios.put(`http://localhost:5000/api/commissions/${commissionId}/status`, 
+      await axios.put(`http://localhost:5000/api/commissions/${commissionId}/status`,
         { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -115,13 +117,19 @@ const Profile = () => {
         // We only really need to fetch commissions if we are the owner viewing our own dashboard
         let commRes = { data: [] };
         if (isMounted && loggedInUser && targetUserId === loggedInUser._id) {
-           commRes = await axios.get(`http://localhost:5000/api/commissions/user/${targetUserId}`);
+          commRes = await axios.get(`http://localhost:5000/api/commissions/user/${targetUserId}`);
+        }
+
+        let ordersRes = { data: [] };
+        if (isMounted && loggedInUser && targetUserId === loggedInUser._id) {
+          ordersRes = await axios.get(`http://localhost:5000/api/orders/user/${targetUserId}`);
         }
 
         if (isMounted) {
           setGallery(artRes.data);
           setBlogs(blogRes.data);
           setCommissions(commRes.data); // Save to state
+          setOrders(ordersRes.data);
         }
       } catch (err) {
         if (axios.isCancel(err) || err.name === "CanceledError") return;
@@ -231,7 +239,16 @@ const Profile = () => {
     navigator.clipboard.writeText(window.location.href);
     alert("Link copied!");
   };
-
+  const fetchOrders = async () => {
+    try {
+      const res = await axios.get(`http://localhost:5000/api/orders/user/${user._id}`, {
+        params: { t: Date.now() }
+      });
+      setOrders(res.data);
+    } catch (err) {
+      console.error("Failed to fetch orders", err);
+    }
+  };
   const openArtwork = async (art) => {
     // 1. Optimistic update opens the modal instantly
     const optimisticArt = {
@@ -283,10 +300,10 @@ const Profile = () => {
     setFollowersCount(prev => newIsFollowing ? prev + 1 : prev - 1);
 
     try {
-      const res = await axios.put(`http://localhost:5000/api/auth/users/${user._id}/follow`, { 
-  currentUserId: loggedInUser._id 
-});
-      
+      const res = await axios.put(`http://localhost:5000/api/auth/users/${user._id}/follow`, {
+        currentUserId: loggedInUser._id
+      });
+
       // Update local storage
       if (res.data.isFollowing) {
         loggedInUser.following.push(user._id);
@@ -328,10 +345,10 @@ const Profile = () => {
 
       <AnimatePresence>
         {showCommissionForm && (
-          <CommissionModal 
-            artist={user} 
-            currentUser={JSON.parse(localStorage.getItem('user'))} 
-            close={() => setShowCommissionForm(false)} 
+          <CommissionModal
+            artist={user}
+            currentUser={JSON.parse(localStorage.getItem('user'))}
+            close={() => setShowCommissionForm(false)}
           />
         )}
       </AnimatePresence>
@@ -340,51 +357,51 @@ const Profile = () => {
       <AnimatePresence>
         {selectedCommission && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedCommission(null)}>
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }} 
-              animate={{ opacity: 1, scale: 1 }} 
-              onClick={e => e.stopPropagation()} 
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              onClick={e => e.stopPropagation()}
               className="bg-white w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl p-6"
             >
               <div className="flex justify-between items-start mb-6">
-                 <div>
-                    <h3 className="text-xl font-bold text-gray-900">Commission Details</h3>
-                    <p className="text-sm text-gray-500">Status: <span className="font-bold uppercase text-blue-600">{selectedCommission.status}</span></p>
-                 </div>
-                 <button onClick={() => setSelectedCommission(null)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200"><X size={18}/></button>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Commission Details</h3>
+                  <p className="text-sm text-gray-500">Status: <span className="font-bold uppercase text-blue-600">{selectedCommission.status}</span></p>
+                </div>
+                <button onClick={() => setSelectedCommission(null)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200"><X size={18} /></button>
               </div>
 
               <div className="space-y-4">
-                 <div>
-                    <p className="text-sm font-bold text-gray-700 mb-1">Description</p>
-                    <div className="p-4 bg-gray-50 rounded-xl text-sm text-gray-600 whitespace-pre-wrap">
-                      {selectedCommission.description}
-                    </div>
-                 </div>
+                <div>
+                  <p className="text-sm font-bold text-gray-700 mb-1">Description</p>
+                  <div className="p-4 bg-gray-50 rounded-xl text-sm text-gray-600 whitespace-pre-wrap">
+                    {selectedCommission.description}
+                  </div>
+                </div>
 
-                 <div className="flex gap-6">
-                    <div>
-                      <p className="text-sm font-bold text-gray-700 mb-1">Budget</p>
-                      <p className="text-lg font-extrabold text-gray-900 flex items-center"><IndianRupee size={18}/>{selectedCommission.budget}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-gray-700 mb-1">Deadline</p>
-                      <p className="text-sm font-medium text-gray-600 mt-1">{new Date(selectedCommission.deadline).toLocaleDateString()}</p>
-                    </div>
-                 </div>
+                <div className="flex gap-6">
+                  <div>
+                    <p className="text-sm font-bold text-gray-700 mb-1">Budget</p>
+                    <p className="text-lg font-extrabold text-gray-900 flex items-center"><IndianRupee size={18} />{selectedCommission.budget}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-gray-700 mb-1">Deadline</p>
+                    <p className="text-sm font-medium text-gray-600 mt-1">{new Date(selectedCommission.deadline).toLocaleDateString()}</p>
+                  </div>
+                </div>
 
-                 {selectedCommission.referenceImages && selectedCommission.referenceImages.length > 0 && (
-                   <div>
-                      <p className="text-sm font-bold text-gray-700 mb-2">Reference Images</p>
-                      <div className="flex gap-2 overflow-x-auto pb-2">
-                        {selectedCommission.referenceImages.map((img, idx) => (
-                          <div key={idx} onClick={() => window.open(img, '_blank')} className="w-20 h-20 rounded-xl overflow-hidden cursor-pointer border border-gray-200 hover:ring-2 hover:ring-blue-500">
-                             <img src={img} alt="Ref" className="w-full h-full object-cover" />
-                          </div>
-                        ))}
-                      </div>
-                   </div>
-                 )}
+                {selectedCommission.referenceImages && selectedCommission.referenceImages.length > 0 && (
+                  <div>
+                    <p className="text-sm font-bold text-gray-700 mb-2">Reference Images</p>
+                    <div className="flex gap-2 overflow-x-auto pb-2">
+                      {selectedCommission.referenceImages.map((img, idx) => (
+                        <div key={idx} onClick={() => window.open(img, '_blank')} className="w-20 h-20 rounded-xl overflow-hidden cursor-pointer border border-gray-200 hover:ring-2 hover:ring-blue-500">
+                          <img src={img} alt="Ref" className="w-full h-full object-cover" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </motion.div>
           </div>
@@ -451,16 +468,16 @@ const Profile = () => {
                 </>
               ) : (
                 <>
-                  <button 
-                     onClick={handleFollowToggle}
-                     className={`px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors ${isFollowing ? 'bg-gray-200 text-gray-800 hover:bg-gray-300' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200'}`}
+                  <button
+                    onClick={handleFollowToggle}
+                    className={`px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors ${isFollowing ? 'bg-gray-200 text-gray-800 hover:bg-gray-300' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200'}`}
                   >
                     {isFollowing ? 'Following' : 'Follow Artist'}
                   </button>
                   {/* --- NEW HIRE BUTTON --- */}
-                  <button 
-                     onClick={() => setShowCommissionForm(true)}
-                     className="px-6 py-2.5 bg-black text-white font-bold rounded-xl hover:bg-gray-800 shadow-lg"
+                  <button
+                    onClick={() => setShowCommissionForm(true)}
+                    className="px-6 py-2.5 bg-black text-white font-bold rounded-xl hover:bg-gray-800 shadow-lg"
                   >
                     Hire Artist
                   </button>
@@ -477,11 +494,13 @@ const Profile = () => {
                 <TabButton active={activeTab} name="gallery" label="Gallery" onClick={setActiveTab} />
                 <TabButton active={activeTab} name="blogs" label="Blogs" onClick={setActiveTab} />
                 <TabButton active={activeTab} name="about" label="About" onClick={setActiveTab} />
+
+                {isOwner && (<TabButton active={activeTab} name="orders" label="Orders" onClick={(name) => { setActiveTab(name); fetchOrders(); }} />)}
                 {isOwner && (<TabButton active={activeTab} name="dashboard" label="Dashboard" onClick={setActiveTab} />)}
               </>
             ) : (
-              <>
-                <TabButton active={activeTab} name="liked" label="Liked Art" onClick={setActiveTab} />
+              <><TabButton active={activeTab} name="liked" label="Liked Art" onClick={setActiveTab} />
+                <TabButton active={activeTab} name="orders" label="My Orders" onClick={setActiveTab} />
                 <TabButton active={activeTab} name="dashboard" label="My Dashboard" onClick={setActiveTab} />
               </>
             )}
@@ -561,12 +580,67 @@ const Profile = () => {
               ))}
             </motion.div>
           )}
-          {activeTab === 'about' && <div className="bg-white p-8 rounded-2xl border border-gray-100"><p>{user.profile?.bio || "No bio yet."}</p></div>}
+          {activeTab === 'about' && (
+  <div className="space-y-6">
+    <div className="bg-white p-8 rounded-2xl border border-gray-100">
+      <h3 className="font-bold text-gray-900 mb-2">Bio</h3>
+      <p className="text-gray-600">{user.profile?.bio || "No bio yet."}</p>
+    </div>
+    {isArtist && (
+      <div className="bg-white p-8 rounded-2xl border border-gray-100">
+        <h3 className="font-bold text-gray-900 mb-4">Artist Reviews</h3>
+        <ReviewSection
+          targetType="artist"
+          targetId={user._id}
+          currentUser={JSON.parse(localStorage.getItem('user'))}
+        />
+      </div>
+    )}
+  </div>
+)}
           {activeTab === 'liked' && <EmptyState icon={Heart} title="No Liked Art" desc="Explore the gallery." />}
+          {activeTab === 'orders' && isOwner && (
+            <div className="space-y-4">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">My Orders</h2>
+              {orders.length === 0 ? (
+                <div className="text-center py-12 bg-gray-50 rounded-2xl border border-gray-100">
+                  <p className="text-gray-500">No orders yet.</p>
+                </div>
+              ) : (
+                <div className="grid gap-4">
+                  {orders.map((order) => (
+                    <div key={order._id} className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="w-16 h-16 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
+                          <img src={order.artwork?.images?.[0]} className="w-full h-full object-cover" alt={order.artwork?.title} />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-gray-900">{order.artwork?.title || 'Artwork'}</h4>
+                          <p className="text-sm text-gray-500 mt-0.5">₹{order.amount}</p>
+                          <p className="text-xs text-gray-400 mt-1">{new Date(order.createdAt).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-start md:items-end gap-2">
+                        <span className={`px-3 py-1 text-xs font-bold uppercase rounded-full ${order.status === 'paid' ? 'bg-green-100 text-green-700' :
+                            order.status === 'failed' ? 'bg-red-100 text-red-700' :
+                              'bg-yellow-100 text-yellow-700'
+                          }`}>
+                          {order.status}
+                        </span>
+                        {order.shippingAddress?.city && (
+                          <p className="text-xs text-gray-400">Ships to {order.shippingAddress.city}, {order.shippingAddress.state}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           {activeTab === 'dashboard' && isOwner && (
             <div className="space-y-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Your Commissions</h2>
-              
+
               {commissions.length === 0 ? (
                 <div className="text-center py-12 bg-gray-50 rounded-2xl border border-gray-100">
                   <p className="text-gray-500">No commission requests yet.</p>
@@ -578,8 +652,8 @@ const Profile = () => {
                     const otherPerson = isArtistRole ? comm.buyer : comm.artist;
 
                     return (
-                      <div 
-                        key={comm._id} 
+                      <div
+                        key={comm._id}
                         onClick={() => setSelectedCommission(comm)}
                         className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col md:flex-row gap-6 justify-between items-start md:items-center cursor-pointer hover:border-blue-300 hover:shadow-md transition-all"
                       >
@@ -590,22 +664,21 @@ const Profile = () => {
                               <h4 className="font-bold text-gray-900">
                                 {isArtistRole ? `Request from ${otherPerson?.username}` : `Sent to ${otherPerson?.username}`}
                               </h4>
-                              <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full ${
-                                comm.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
+                              <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full ${comm.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
                                 comm.status === 'accepted' ? 'bg-blue-100 text-blue-700' :
-                                comm.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                              }`}>
+                                  comm.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                                }`}>
                                 {comm.status}
                               </span>
                             </div>
                             <p className="text-sm text-gray-600 line-clamp-1">{comm.description}</p>
                             <div className="flex gap-4 mt-3 text-xs font-medium text-gray-500">
-                              <span className="flex items-center gap-1"><IndianRupee size={14}/> {comm.budget}</span>
-                              <span className="flex items-center gap-1"><Calendar size={14}/> Due: {new Date(comm.deadline).toLocaleDateString()}</span>
+                              <span className="flex items-center gap-1"><IndianRupee size={14} /> {comm.budget}</span>
+                              <span className="flex items-center gap-1"><Calendar size={14} /> Due: {new Date(comm.deadline).toLocaleDateString()}</span>
                             </div>
                           </div>
                         </div>
-                        
+
                         {/* Wired up Actions based on role */}
                         {isArtistRole && comm.status === 'pending' && (
                           <div className="flex gap-2 w-full md:w-auto">

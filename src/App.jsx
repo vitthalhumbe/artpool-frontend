@@ -8,12 +8,14 @@ import Gallery from './Gallery';
 import Login from './Login';
 import SignUp from './SignUp';
 import Navbar from './Navbar'
+import Messages from './Messages';
+// inside Routes:
 
 const App = () => {
   return (
     <Router>
-      <Navbar /> 
-      <div className="pt-20"> 
+      <Navbar />
+      <div className="pt-20">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/profile" element={<Profile />} />
@@ -22,6 +24,7 @@ const App = () => {
           <Route path='/login' element={<Login />} />
           <Route path='/signup' element={<SignUp />} />
           <Route path="/profile/:id?" element={<Profile />} />
+          <Route path='/messages' element={<Messages />} />
         </Routes>
       </div>
     </Router>

@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X, User, LogOut } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { MessageSquare } from 'lucide-react';
+
+import NotificationBell from './components/NotificationBell';
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [user, setUser] = useState(null);
@@ -40,12 +43,17 @@ const Navbar = () => {
               <div className="flex items-center gap-4">
                 <span className="text-gray-700 font-medium">Hello, {user.username}</span>
                 <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden border border-gray-300 cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all">
+                 
                   {user.profile?.avatar_url ? (
                     <img src={user.profile.avatar_url} onClick={() => navigate('/profile')} alt="Profile" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-500" onClick={() => navigate('/profile')}><User size={20} /></div>
                   )}
                 </div>
+                 <NotificationBell currentUser={user} />
+                 <button onClick={() => navigate('/messages')} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+  <MessageSquare size={22} className="text-gray-600" />
+</button>
                 <button onClick={handleLogout} className="text-gray-500 hover:text-red-600 transition-colors"><LogOut size={20} /></button>
               </div>
             ) : (

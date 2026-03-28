@@ -6,11 +6,14 @@ import axios from 'axios';
 import CommissionModal from './CommisionModel';
 import { AnimatePresence } from 'framer-motion';
 import CheckoutModal from './CheckoutModel';
+import ReviewSection from './ReviewSection';
+import ChatWindow from '../components/ChatWindow';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const ArtworkDetailModal = ({ artwork, currentUser, close, onDelete, onUpdate }) => {
     const [showCheckout, setShowCheckout] = useState(false);
+    const [showChat, setShowChat] = useState(false);
     const isOwner = currentUser
         ? (currentUser._id === artwork.artist || currentUser._id === artwork.artist?._id)
         : false;
@@ -76,15 +79,15 @@ const ArtworkDetailModal = ({ artwork, currentUser, close, onDelete, onUpdate })
                 )}
             </AnimatePresence>
             <AnimatePresence>
-  {showCheckout && (
-    <CheckoutModal
-      artwork={artwork}
-      currentUser={currentUser}
-      close={() => setShowCheckout(false)}
-      onSuccess={() => alert("Order placed! The artist will ship it to you.")}
-    />
-  )}
-</AnimatePresence>
+                {showCheckout && (
+                    <CheckoutModal
+                        artwork={artwork}
+                        currentUser={currentUser}
+                        close={() => setShowCheckout(false)}
+                        onSuccess={() => alert("Order placed! The artist will ship it to you.")}
+                    />
+                )}
+            </AnimatePresence>
 
             <motion.div
                 initial={{ scale: 0.95, opacity: 0 }}
@@ -148,13 +151,21 @@ const ArtworkDetailModal = ({ artwork, currentUser, close, onDelete, onUpdate })
 
                         <div className="flex items-center gap-2">
                             {!isOwner && (
+                                <>
                                 <button
                                     onClick={handleHireClick}
                                     className="px-3 py-1.5 bg-gray-100 text-gray-700 hover:bg-gray-200 text-xs font-bold rounded-lg transition-colors flex items-center gap-1"
                                 >
                                     <Briefcase size={14} /> Hire
                                 </button>
-                            )}
+                                
+                            </>
+                            )}<button
+  onClick={() => setShowChat(true)}
+  className="px-3 py-1.5 bg-blue-600 text-white hover:bg-blue-700 text-xs font-bold rounded-lg transition-colors flex items-center gap-1"
+>
+  Message
+</button>
                             <button onClick={close} className="p-1.5 hover:bg-gray-100 rounded-full transition-colors text-gray-500">
                                 <X size={20} />
                             </button>
@@ -173,6 +184,14 @@ const ArtworkDetailModal = ({ artwork, currentUser, close, onDelete, onUpdate })
                             {artwork.tags?.map(tag => (
                                 <span key={tag} className="px-3 py-1 bg-gray-100 text-gray-600 text-xs font-bold rounded-full">#{tag}</span>
                             ))}
+                        </div>
+                        <div className="border-t border-gray-100 pt-4 mt-4">
+                            <p className="text-sm font-bold text-gray-700 mb-2">Reviews</p>
+                            <ReviewSection
+                                targetType="artwork"
+                                targetId={artwork._id}
+                                currentUser={currentUser}
+                            />
                         </div>
                     </div>
 
@@ -204,23 +223,30 @@ const ArtworkDetailModal = ({ artwork, currentUser, close, onDelete, onUpdate })
                                     <Heart size={24} fill={likedByUser ? "currentColor" : "none"} />
                                 </button>
                                 <button
-  onClick={() => {
-    if (!currentUser) { setShowLoginPrompt(true); return; }
-    setShowCheckout(true);
-  }}
-  disabled={artwork.sold}
-  className={`flex-1 py-3.5 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors shadow-lg shadow-gray-300 ${
-    artwork.sold
-      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-      : 'bg-black text-white hover:bg-gray-800'
-  }`}
->
-  {artwork.sold ? 'Sold Out' : 'Buy Original'}
-</button>
+                                    onClick={() => {
+                                        if (!currentUser) { setShowLoginPrompt(true); return; }
+                                        setShowCheckout(true);
+                                    }}
+                                    disabled={artwork.sold}
+                                    className={`flex-1 py-3.5 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors shadow-lg shadow-gray-300 ${artwork.sold
+                                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                        : 'bg-black text-white hover:bg-gray-800'
+                                        }`}
+                                >
+                                    {artwork.sold ? 'Sold Out' : 'Buy Original'}
+                                </button>
                             </div>
                         )}
                     </div>
                 </div>
+
+                {showChat && currentUser && !isOwner && (
+                    <ChatWindow
+                        currentUser={currentUser}
+                        otherUser={artwork.artist}
+                        close={() => setShowChat(false)}
+                    />
+                )}
             </motion.div>
         </div>
     );

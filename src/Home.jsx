@@ -8,6 +8,7 @@ import Img2 from "./assets/img2.jpg";
 import Img3 from "./assets/img3.jpg";
 import Img4 from "./assets/img4.jpg";
 
+import ReviewSection from './submodels/ReviewSection';
 const Home = () => {
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900 selection:bg-blue-100">
@@ -74,15 +75,15 @@ const Home = () => {
       </section>
 
       <section className="bg-gray-50 py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center text-gray-900 mb-16">What our community says</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <TestimonialCard name="Siddhant Salonkhe" initial="S" quote="I found the suitable artist, who is excited to draw my portrait, and with ease of communication and payments here, On ArtPool" />
-            <TestimonialCard name="Vedant Swami" initial="V" quote="As an artist, I find Artpool very helpful platform, which enables to showcase my work and expand my network." />
-            <TestimonialCard name="Viraj Patil" initial="V" quote="I was looking for suitable Art piece for my new apartment wall, This platform helps me to find the painting within my budget." />
-          </div>
-        </div>
-      </section>
+  <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+    <h2 className="text-3xl font-bold text-center text-gray-900 mb-8">What our community says</h2>
+    <ReviewSection
+      targetType="website"
+      targetId={null}
+      currentUser={JSON.parse(localStorage.getItem('user') || 'null')}
+    />
+  </div>
+</section>
 
       <footer className="py-12 border-t border-gray-200 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center">
         <div className="text-xl font-bold mb-4 md:mb-0">ArtPool</div>
