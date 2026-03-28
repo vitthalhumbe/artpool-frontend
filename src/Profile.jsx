@@ -2,17 +2,20 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Star, Users, ShoppingBag, Settings, Edit3, BookOpen, X,
-  User, Eye, Share2, Camera, Heart, CheckCircle, Clock, Loader2, MapPin, Plus, Image as ImageIcon
+  User, Eye, Share2, Camera, Heart, CheckCircle, Clock, Loader2, MapPin, Plus, Image as ImageIcon, IndianRupee, Calendar
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import EditProfileModal from './submodels/EditProfileModel';
 import AddArtworkModal from './submodels/AddArtworkModel';
 import ArtworkDetailModal from './submodels/ArtworkDetailModel';
+import CommissionModal from './submodels/CommisionModel';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import DOMPurify from 'dompurify';
 import { useRef, useMemo } from 'react';
+
+
 const Profile = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
@@ -24,6 +27,33 @@ const Profile = () => {
   const [blogs, setBlogs] = useState([]);
   const [isAddingBlog, setIsAddingBlog] = useState(false);
   const [selectedBlog, setSelectedBlog] = useState(null);
+  const [followersCount, setFollowersCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [commissions, setCommissions] = useState([]);
+  // New States for Commissions
+  const [showCommissionForm, setShowCommissionForm] = useState(false);
+  const [selectedCommission, setSelectedCommission] = useState(null); // For the details popup
+
+  // Function to Accept or Decline
+  const handleUpdateStatus = async (commissionId, newStatus, e) => {
+    e.stopPropagation(); // Prevents the card click from opening the details modal
+    
+    // Optimistic UI update
+    setCommissions(prev => prev.map(c => c._id === commissionId ? { ...c, status: newStatus } : c));
+
+    try {
+      const token = localStorage.getItem('token') || JSON.parse(localStorage.getItem('user'))?.token;
+      await axios.put(`http://localhost:5000/api/commissions/${commissionId}/status`, 
+        { status: newStatus },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+    } catch (error) {
+      console.error("Failed to update status:", error);
+      // Revert if failed (optional, but good practice)
+      alert("Failed to update status.");
+    }
+  };
 
   const [selectedArt, setSelectedArt] = useState(null);
   // Add these near your other state variables at the top of Profile
@@ -63,6 +93,13 @@ const Profile = () => {
         if (isMounted) {
           setUser(profileData);
           setActiveTab(profileData.role === 'artist' ? 'gallery' : 'liked');
+
+          // ADD THESE 3 LINES: Load real stats from the database
+          setFollowersCount(profileData.followers?.length || 0);
+          setFollowingCount(profileData.following?.length || 0);
+          if (loggedInUser && profileData._id !== loggedInUser._id) {
+            setIsFollowing(profileData.followers?.includes(loggedInUser._id));
+          }
         }
 
         // 2. Fetch their artworks and blogs
@@ -72,6 +109,19 @@ const Profile = () => {
         if (isMounted) {
           setGallery(artRes.data);
           setBlogs(blogRes.data);
+        }
+
+        // --- NEW: Fetch Commissions ---
+        // We only really need to fetch commissions if we are the owner viewing our own dashboard
+        let commRes = { data: [] };
+        if (isMounted && loggedInUser && targetUserId === loggedInUser._id) {
+           commRes = await axios.get(`http://localhost:5000/api/commissions/user/${targetUserId}`);
+        }
+
+        if (isMounted) {
+          setGallery(artRes.data);
+          setBlogs(blogRes.data);
+          setCommissions(commRes.data); // Save to state
         }
       } catch (err) {
         if (axios.isCancel(err) || err.name === "CanceledError") return;
@@ -217,6 +267,40 @@ const Profile = () => {
   if (!user) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin" /></div>;
   const isArtist = user.role === 'artist';
 
+  const handleFollowToggle = async () => {
+    const storedUser = localStorage.getItem('user');
+    if (!storedUser) return navigate('/login');
+    const loggedInUser = JSON.parse(storedUser);
+
+    // --- THE FIX: Safety check for older local storage data ---
+    if (!loggedInUser.following) {
+      loggedInUser.following = [];
+    }
+
+    // Optimistic UI update
+    const newIsFollowing = !isFollowing;
+    setIsFollowing(newIsFollowing);
+    setFollowersCount(prev => newIsFollowing ? prev + 1 : prev - 1);
+
+    try {
+      const res = await axios.put(`http://localhost:5000/api/auth/users/${user._id}/follow`, { 
+  currentUserId: loggedInUser._id 
+});
+      
+      // Update local storage
+      if (res.data.isFollowing) {
+        loggedInUser.following.push(user._id);
+      } else {
+        loggedInUser.following = loggedInUser.following.filter(id => id !== user._id);
+      }
+      localStorage.setItem('user', JSON.stringify(loggedInUser));
+
+    } catch (err) {
+      setIsFollowing(isFollowing);
+      setFollowersCount(prev => isFollowing ? prev + 1 : prev - 1);
+      console.error("Follow failed:", err);
+    }
+  };
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900 pb-20">
 
@@ -241,6 +325,71 @@ const Profile = () => {
           />
         )}
       </AnimatePresence>
+
+      <AnimatePresence>
+        {showCommissionForm && (
+          <CommissionModal 
+            artist={user} 
+            currentUser={JSON.parse(localStorage.getItem('user'))} 
+            close={() => setShowCommissionForm(false)} 
+          />
+        )}
+      </AnimatePresence>
+
+      {/* 2. The Commission Details Popup Overlay */}
+      <AnimatePresence>
+        {selectedCommission && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedCommission(null)}>
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }} 
+              animate={{ opacity: 1, scale: 1 }} 
+              onClick={e => e.stopPropagation()} 
+              className="bg-white w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl p-6"
+            >
+              <div className="flex justify-between items-start mb-6">
+                 <div>
+                    <h3 className="text-xl font-bold text-gray-900">Commission Details</h3>
+                    <p className="text-sm text-gray-500">Status: <span className="font-bold uppercase text-blue-600">{selectedCommission.status}</span></p>
+                 </div>
+                 <button onClick={() => setSelectedCommission(null)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200"><X size={18}/></button>
+              </div>
+
+              <div className="space-y-4">
+                 <div>
+                    <p className="text-sm font-bold text-gray-700 mb-1">Description</p>
+                    <div className="p-4 bg-gray-50 rounded-xl text-sm text-gray-600 whitespace-pre-wrap">
+                      {selectedCommission.description}
+                    </div>
+                 </div>
+
+                 <div className="flex gap-6">
+                    <div>
+                      <p className="text-sm font-bold text-gray-700 mb-1">Budget</p>
+                      <p className="text-lg font-extrabold text-gray-900 flex items-center"><IndianRupee size={18}/>{selectedCommission.budget}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-gray-700 mb-1">Deadline</p>
+                      <p className="text-sm font-medium text-gray-600 mt-1">{new Date(selectedCommission.deadline).toLocaleDateString()}</p>
+                    </div>
+                 </div>
+
+                 {selectedCommission.referenceImages && selectedCommission.referenceImages.length > 0 && (
+                   <div>
+                      <p className="text-sm font-bold text-gray-700 mb-2">Reference Images</p>
+                      <div className="flex gap-2 overflow-x-auto pb-2">
+                        {selectedCommission.referenceImages.map((img, idx) => (
+                          <div key={idx} onClick={() => window.open(img, '_blank')} className="w-20 h-20 rounded-xl overflow-hidden cursor-pointer border border-gray-200 hover:ring-2 hover:ring-blue-500">
+                             <img src={img} alt="Ref" className="w-full h-full object-cover" />
+                          </div>
+                        ))}
+                      </div>
+                   </div>
+                 )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
       <div className="bg-white pb-4 shadow-sm relative z-10">
         <div className="h-64 w-full bg-gray-200 overflow-hidden relative group">
           <img src={user.profile?.banner_url || "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?q=80&w=2000&auto=format&fit=crop"} alt="Cover" className="w-full h-full object-cover" />
@@ -263,11 +412,11 @@ const Profile = () => {
               </div>
               {isOwner && (
                 <label className="absolute bottom-2 right-2 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full cursor-pointer shadow-lg transition-transform hover:scale-110">
-                {uploading ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
-                <input type="file" className="hidden" onChange={(e) => handleProfileImageUpload(e, 'avatar')} disabled={uploading} />
-              </label>
+                  {uploading ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
+                  <input type="file" className="hidden" onChange={(e) => handleProfileImageUpload(e, 'avatar')} disabled={uploading} />
+                </label>
               )}
-              
+
             </div>
 
             <div className="flex-1 pb-2 mt-20  w-full text-center md:text-left">
@@ -279,11 +428,11 @@ const Profile = () => {
               {isArtist ? (
                 <>
                   <div className="flex items-center justify-center md:justify-start gap-6 mt-4">
-                    <StatItem icon={Star} value="4.9" label="Rating" color="text-yellow-400" />
+                    <StatItem icon={Users} value={followersCount} label="Followers" color="text-blue-600" />
                     <div className="w-px h-4 bg-gray-300 hidden md:block"></div>
-                    <StatItem icon={Users} value="1.2k" label="Followers" color="text-blue-600" />
+                    <StatItem icon={Users} value={followingCount} label="Following" color="text-green-600" />
                     <div className="w-px h-4 bg-gray-300 hidden md:block"></div>
-                    <StatItem icon={ShoppingBag} value={gallery.length || "0"} label="Sold" color="text-purple-600" />
+                    <StatItem icon={ShoppingBag} value={gallery.length || "0"} label="Artworks" color="text-purple-600" />
                   </div>
                 </>
               ) : (
@@ -294,14 +443,32 @@ const Profile = () => {
 
             </div>
 
-            {isOwner && (
-              <div className="flex gap-3 mb-2 w-full md:w-auto justify-center">
-              <button onClick={() => setIsEditing(true)} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-semibold flex items-center gap-2 shadow-lg shadow-blue-200"><Edit3 size={18} /> Edit Profile</button>
-              <button className="p-3 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600"><Settings size={20} /></button>
+            <div className="flex gap-3 mb-2 w-full md:w-auto justify-center">
+              {isOwner ? (
+                <>
+                  <button onClick={() => setIsEditing(true)} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-semibold flex items-center gap-2 shadow-lg shadow-blue-200"><Edit3 size={18} /> Edit Profile</button>
+                  <button className="p-3 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600"><Settings size={20} /></button>
+                </>
+              ) : (
+                <>
+                  <button 
+                     onClick={handleFollowToggle}
+                     className={`px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors ${isFollowing ? 'bg-gray-200 text-gray-800 hover:bg-gray-300' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200'}`}
+                  >
+                    {isFollowing ? 'Following' : 'Follow Artist'}
+                  </button>
+                  {/* --- NEW HIRE BUTTON --- */}
+                  <button 
+                     onClick={() => setShowCommissionForm(true)}
+                     className="px-6 py-2.5 bg-black text-white font-bold rounded-xl hover:bg-gray-800 shadow-lg"
+                  >
+                    Hire Artist
+                  </button>
+                </>
+              )}
               <button onClick={handleShare} className="p-3 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600"><Share2 size={20} /></button>
             </div>
-            )}
-            
+
           </div>
 
           <div className="flex gap-8 border-b border-gray-200 mt-8 overflow-x-auto no-scrollbar">
@@ -310,7 +477,7 @@ const Profile = () => {
                 <TabButton active={activeTab} name="gallery" label="Gallery" onClick={setActiveTab} />
                 <TabButton active={activeTab} name="blogs" label="Blogs" onClick={setActiveTab} />
                 <TabButton active={activeTab} name="about" label="About" onClick={setActiveTab} />
-                {isOwner &&(<TabButton active={activeTab} name="dashboard" label="Dashboard" onClick={setActiveTab} />)}
+                {isOwner && (<TabButton active={activeTab} name="dashboard" label="Dashboard" onClick={setActiveTab} />)}
               </>
             ) : (
               <>
@@ -396,11 +563,63 @@ const Profile = () => {
           )}
           {activeTab === 'about' && <div className="bg-white p-8 rounded-2xl border border-gray-100"><p>{user.profile?.bio || "No bio yet."}</p></div>}
           {activeTab === 'liked' && <EmptyState icon={Heart} title="No Liked Art" desc="Explore the gallery." />}
-          {activeTab === 'dashboard' && <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <DashboardCard title={isArtist ? "Pending Requests" : "My Commissions"} count="2" icon={Clock} color="bg-orange-100 text-orange-600" />
-            <DashboardCard title={isArtist ? "Completed Works" : "Purchase History"} count="12" icon={CheckCircle} color="bg-green-100 text-green-600" />
-            <DashboardCard title={isArtist ? "Total Earnings" : "Saved Artists"} count={isArtist ? "₹45k" : "5"} icon={isArtist ? ShoppingBag : Users} color="bg-blue-100 text-blue-600" />
-          </div>}
+          {activeTab === 'dashboard' && isOwner && (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Your Commissions</h2>
+              
+              {commissions.length === 0 ? (
+                <div className="text-center py-12 bg-gray-50 rounded-2xl border border-gray-100">
+                  <p className="text-gray-500">No commission requests yet.</p>
+                </div>
+              ) : (
+                <div className="grid gap-4">
+                  {commissions.map((comm) => {
+                    const isArtistRole = comm.artist._id === user._id; // Are we the artist or the buyer?
+                    const otherPerson = isArtistRole ? comm.buyer : comm.artist;
+
+                    return (
+                      <div 
+                        key={comm._id} 
+                        onClick={() => setSelectedCommission(comm)}
+                        className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col md:flex-row gap-6 justify-between items-start md:items-center cursor-pointer hover:border-blue-300 hover:shadow-md transition-all"
+                      >
+                        <div className="flex items-start gap-4">
+                          <img src={otherPerson?.profile?.avatar_url || `https://ui-avatars.com/api/?name=${otherPerson?.username}&background=random`} alt="Avatar" className="w-12 h-12 rounded-full object-cover" />
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="font-bold text-gray-900">
+                                {isArtistRole ? `Request from ${otherPerson?.username}` : `Sent to ${otherPerson?.username}`}
+                              </h4>
+                              <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full ${
+                                comm.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
+                                comm.status === 'accepted' ? 'bg-blue-100 text-blue-700' :
+                                comm.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                              }`}>
+                                {comm.status}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-600 line-clamp-1">{comm.description}</p>
+                            <div className="flex gap-4 mt-3 text-xs font-medium text-gray-500">
+                              <span className="flex items-center gap-1"><IndianRupee size={14}/> {comm.budget}</span>
+                              <span className="flex items-center gap-1"><Calendar size={14}/> Due: {new Date(comm.deadline).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Wired up Actions based on role */}
+                        {isArtistRole && comm.status === 'pending' && (
+                          <div className="flex gap-2 w-full md:w-auto">
+                            <button onClick={(e) => handleUpdateStatus(comm._id, 'accepted', e)} className="flex-1 md:flex-none px-4 py-2 bg-black text-white text-sm font-bold rounded-lg hover:bg-gray-800">Accept</button>
+                            <button onClick={(e) => handleUpdateStatus(comm._id, 'rejected', e)} className="flex-1 md:flex-none px-4 py-2 bg-gray-100 text-gray-700 text-sm font-bold rounded-lg hover:bg-gray-200">Decline</button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </AnimatePresence>
       </div>
     </div>

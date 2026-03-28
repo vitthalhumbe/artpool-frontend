@@ -3,10 +3,14 @@ import { motion } from 'framer-motion';
 import { Trash2, Eye, Share2, Heart, X, Briefcase } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import CommissionModal from './CommisionModel';
+import { AnimatePresence } from 'framer-motion';
+import CheckoutModal from './CheckoutModel';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const ArtworkDetailModal = ({ artwork, currentUser, close, onDelete, onUpdate }) => {
+    const [showCheckout, setShowCheckout] = useState(false);
     const isOwner = currentUser
         ? (currentUser._id === artwork.artist || currentUser._id === artwork.artist?._id)
         : false;
@@ -38,12 +42,15 @@ const ArtworkDetailModal = ({ artwork, currentUser, close, onDelete, onUpdate })
             onDelete(artwork._id);
         }
     };
-
+    const [showCommissionForm, setShowCommissionForm] = useState(false);
     const handleHireClick = () => {
-        if (!currentUser) { setShowLoginPrompt(true); return; }
-        console.log("hire clicked");
+        if (!currentUser) {
+            setShowLoginPrompt(true);
+            return;
+        }
+        // If logged in, open the form!
+        setShowCommissionForm(true);
     };
-
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md" onClick={close}>
 
@@ -58,6 +65,26 @@ const ArtworkDetailModal = ({ artwork, currentUser, close, onDelete, onUpdate })
                     </div>
                 </div>
             )}
+            {/* --- THE COMMISSION FORM OVERLAY --- */}
+            <AnimatePresence>
+                {showCommissionForm && (
+                    <CommissionModal
+                        artist={artwork.artist}
+                        currentUser={currentUser}
+                        close={() => setShowCommissionForm(false)}
+                    />
+                )}
+            </AnimatePresence>
+            <AnimatePresence>
+  {showCheckout && (
+    <CheckoutModal
+      artwork={artwork}
+      currentUser={currentUser}
+      close={() => setShowCheckout(false)}
+      onSuccess={() => alert("Order placed! The artist will ship it to you.")}
+    />
+  )}
+</AnimatePresence>
 
             <motion.div
                 initial={{ scale: 0.95, opacity: 0 }}
@@ -67,17 +94,15 @@ const ArtworkDetailModal = ({ artwork, currentUser, close, onDelete, onUpdate })
             >
                 {/* LEFT: Image Grid */}
                 <div className="w-full lg:w-3/4 bg-gray-100 overflow-y-auto p-4 custom-scrollbar">
-                    <div className={`grid gap-4 h-full ${
-                        artwork.images.length === 1 ? 'grid-cols-1' :
+                    <div className={`grid gap-4 h-full ${artwork.images.length === 1 ? 'grid-cols-1' :
                         artwork.images.length === 2 ? 'grid-cols-2' :
-                        artwork.images.length === 3 ? 'grid-cols-2 grid-rows-2' :
-                        'grid-cols-2 md:grid-cols-3'
-                    }`}>
+                            artwork.images.length === 3 ? 'grid-cols-2 grid-rows-2' :
+                                'grid-cols-2 md:grid-cols-3'
+                        }`}>
                         {artwork.images.map((img, idx) => (
-                            <div key={idx} className={`relative rounded-xl overflow-hidden shadow-sm group ${
-                                artwork.images.length === 3 && idx === 0 ? 'row-span-2' :
+                            <div key={idx} className={`relative rounded-xl overflow-hidden shadow-sm group ${artwork.images.length === 3 && idx === 0 ? 'row-span-2' :
                                 artwork.images.length >= 4 && idx === 0 ? 'col-span-2 row-span-2' : ''
-                            }`}>
+                                }`}>
                                 <img src={img} className="w-full h-full object-cover" alt="Detail" />
                                 <div
                                     onClick={() => window.open(img, '_blank')}
@@ -179,14 +204,19 @@ const ArtworkDetailModal = ({ artwork, currentUser, close, onDelete, onUpdate })
                                     <Heart size={24} fill={likedByUser ? "currentColor" : "none"} />
                                 </button>
                                 <button
-                                    onClick={() => {
-                                        if (!currentUser) { setShowLoginPrompt(true); return; }
-                                        console.log("Proceed to checkout!");
-                                    }}
-                                    className="flex-1 py-3.5 bg-black text-white font-bold rounded-xl hover:bg-gray-800 flex items-center justify-center gap-2 transition-colors shadow-lg shadow-gray-300"
-                                >
-                                    Buy Original
-                                </button>
+  onClick={() => {
+    if (!currentUser) { setShowLoginPrompt(true); return; }
+    setShowCheckout(true);
+  }}
+  disabled={artwork.sold}
+  className={`flex-1 py-3.5 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors shadow-lg shadow-gray-300 ${
+    artwork.sold
+      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+      : 'bg-black text-white hover:bg-gray-800'
+  }`}
+>
+  {artwork.sold ? 'Sold Out' : 'Buy Original'}
+</button>
                             </div>
                         )}
                     </div>
