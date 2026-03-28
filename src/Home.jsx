@@ -1,15 +1,29 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Star } from 'lucide-react';
-import { Link } from 'react-router-dom';
-
+import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import HeroImage from "./assets/hero.jpg";
-import Img1 from "./assets/img1.jpg";
-import Img2 from "./assets/img2.jpg";
-import Img3 from "./assets/img3.jpg";
-import Img4 from "./assets/img4.jpg";
-
 import ReviewSection from './submodels/ReviewSection';
+
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 const Home = () => {
+  const [featuredArtworks, setFeaturedArtworks] = useState([]);
+  const [searchInput, setSearchInput] = useState('');
+  const currentUser = JSON.parse(localStorage.getItem('user') || 'null');
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    axios.get(`${API}/api/artworks/featured`)
+      .then(res => setFeaturedArtworks(res.data))
+      .catch(err => console.error(err));
+  }, []);
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchInput.trim()) navigate(`/gallery?search=${searchInput}`);
+  };
+
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900 selection:bg-blue-100">
 
@@ -21,19 +35,21 @@ const Home = () => {
           Buy original art or hire world-class artists to draw custom pieces for you.
         </p>
 
-        <div className="max-w-2xl mx-auto relative mb-16">
+        <form onSubmit={handleSearch} className="max-w-2xl mx-auto relative mb-16">
           <div className="relative flex items-center">
             <Search className="absolute left-4 text-gray-400" size={20} />
             <input
               type="text"
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
               placeholder="Search for oil paintings, sketches, artists..."
               className="w-full pl-12 pr-32 py-4 rounded-full border border-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             />
-            <button className="absolute right-2 top-2 bottom-2 bg-blue-600 hover:bg-blue-700 text-white px-8 rounded-full font-medium transition-colors">
+            <button type="submit" className="absolute right-2 top-2 bottom-2 bg-blue-600 hover:bg-blue-700 text-white px-8 rounded-full font-medium transition-colors">
               Search
             </button>
           </div>
-        </div>
+        </form>
 
         <div className="relative rounded-2xl overflow-hidden shadow-xl bg-gray-50 aspect-[16/8]">
           <img src={HeroImage} alt="Art showcase" className="w-full h-full object-cover" />
@@ -61,48 +77,58 @@ const Home = () => {
         <div className="flex justify-between items-end mb-10">
           <div>
             <h2 className="text-3xl font-bold text-gray-900 mb-2">Featured Artworks</h2>
-            <p className="text-gray-500">Curated collection of this week's most popular pieces.</p>
+            <p className="text-gray-500">This week's most liked pieces.</p>
           </div>
           <Link to="/gallery" className="text-blue-600 font-semibold hover:underline hidden sm:block">View Gallery →</Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          <ArtCard title="Blooming in Dignity" artist="Vitthal Humbe" price="500" image={Img1} />
-          <ArtCard title="The wise women" artist="Parth Suryawanshi" price="1000" image={Img2} />
-          <ArtCard title="Duality of Man" artist="Abhijit Achrekar" price="699" image={Img3} />
-          <ArtCard title="Silent Travel" artist="Yash Gajwani" price="499" image={Img4} />
-        </div>
+        {featuredArtworks.length === 0 ? (
+          <div className="text-center py-16 text-gray-400">No featured artworks yet.</div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {featuredArtworks.map(art => (
+              <ArtCard
+                key={art._id}
+                title={art.title}
+                artist={art.artist?.username || 'Unknown'}
+                price={art.price}
+                image={art.images[0]}
+                sold={art.sold}
+                onClick={() => navigate('/gallery')}
+              />
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="bg-gray-50 py-20">
-  <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-    <h2 className="text-3xl font-bold text-center text-gray-900 mb-8">What our community says</h2>
-    <ReviewSection
-      targetType="website"
-      targetId={null}
-      currentUser={JSON.parse(localStorage.getItem('user') || 'null')}
-    />
-  </div>
-</section>
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl font-bold text-center text-gray-900 mb-8">What our community says</h2>
+          <ReviewSection
+            targetType="website"
+            targetId={null}
+            currentUser={currentUser}
+          />
+        </div>
+      </section>
 
       <footer className="py-12 border-t border-gray-200 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center">
         <div className="text-xl font-bold mb-4 md:mb-0">ArtPool</div>
-        <div className="flex space-x-8 text-sm text-gray-500">
-          <a href="#" className="hover:text-gray-900">About</a>
-          <a href="#" className="hover:text-gray-900">Privacy</a>
-          <a href="#" className="hover:text-gray-900">Terms</a>
-          <a href="#" className="hover:text-gray-900">Contact</a>
-        </div>
         <div className="text-sm text-gray-400 mt-4 md:mt-0">© 2026 ArtPool Inc.</div>
       </footer>
     </div>
   );
 };
 
-const ArtCard = ({ image, title, artist, price }) => (
-  <div className="group">
-    <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-4">
+const ArtCard = ({ image, title, artist, price, sold, onClick }) => (
+  <div className="group cursor-pointer" onClick={onClick}>
+    <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-4 relative">
       <img src={image} alt={title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+      {sold && (
+        <div className="absolute top-4 left-[-28px] w-28 bg-red-500 text-white text-xs font-bold text-center py-1 rotate-[-45deg] origin-center shadow-md">
+          SOLD
+        </div>
+      )}
     </div>
     <div className="flex justify-between items-start mb-4">
       <div>
@@ -112,27 +138,8 @@ const ArtCard = ({ image, title, artist, price }) => (
       <span className="font-bold text-gray-900">₹{price}</span>
     </div>
     <button className="w-full py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:border-gray-900 hover:text-gray-900 transition-colors">
-      Buy Piece
+      {sold ? 'Sold Out' : 'Buy Piece'}
     </button>
-  </div>
-);
-
-const TestimonialCard = ({ name, initial, quote }) => (
-  <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
-    <div className="flex space-x-1 text-yellow-400 mb-4">
-      <Star size={16} fill="currentColor" />
-      <Star size={16} fill="currentColor" />
-      <Star size={16} fill="currentColor" />
-      <Star size={16} fill="currentColor" />
-      <Star size={16} fill="currentColor" />
-    </div>
-    <p className="text-gray-600 italic mb-6 leading-relaxed">"{quote}"</p>
-    <div className="flex items-center space-x-3">
-      <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs">
-        {initial}
-      </div>
-      <span className="font-bold text-sm text-gray-900">{name}</span>
-    </div>
   </div>
 );
 

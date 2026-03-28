@@ -22,6 +22,13 @@ const Gallery = () => {
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) setCurrentUser(JSON.parse(storedUser));
+
+    const params = new URLSearchParams(window.location.search);
+const urlSearch = params.get('search');
+if (urlSearch) {
+  setSearchInput(urlSearch);
+  setSearch(urlSearch);
+}
   }, []);
 
   const fetchArtworks = useCallback(async (pageNum, searchVal, categoryVal, replace = false) => {
