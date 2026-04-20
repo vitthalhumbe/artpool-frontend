@@ -1,21 +1,19 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
-const AuthSuccess = () => {
+export default function AuthSuccess() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
     const token = params.get("token");
-    const user = JSON.parse(decodeURIComponent(params.get("user")));
-
-    localStorage.setItem("token", token);
-    localStorage.setItem("user", JSON.stringify(user));
-
-    navigate("/");
+    if (token) {
+      localStorage.setItem("token", token);
+      navigate("/");
+    } else {
+      navigate("/login");
+    }
   }, []);
 
-  return <p>Logging in...</p>;
-};
-
-export default AuthSuccess;
+  return null;
+}

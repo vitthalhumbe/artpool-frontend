@@ -12,26 +12,11 @@ import ResetPassword from './Auth/ResetPassword';
 import ForgotPassword from './Auth/ForgotPassword';
 import NotFound from './components/NotFound';
 import Commission from './pages/Commission';
-import AuthSuccess from './Auth/AuthSucess';
+import AuthSuccess from './Auth/AuthSucess.jsx'
 import About from './pages/About';
 import Blogs from './pages/Blogs';
-const GoogleAuthSuccess = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const data = params.get('data');
-    if (data) {
-      const user = JSON.parse(decodeURIComponent(data));
-      localStorage.setItem('token', user.token);
-      localStorage.setItem('user', JSON.stringify(user));
-      navigate('/');
-    } else {
-      navigate('/login');
-    }
-  }, []);
-  return <div className="min-h-screen flex items-center justify-center"><span className="text-gray-500">Signing you in...</span></div>;
-};
+
+
 const App = () => {
   return (
     <Router>
@@ -54,7 +39,7 @@ const App = () => {
           <Route path='/about' element={<About />} />
           <Route path='/blogs' element={<Blogs />} />
           <Route path='*' element={<NotFound />} />
-          <Route path='/auth/google/success' element={<GoogleAuthSuccess />} />
+          <Route path="/auth-success" element={<AuthSuccess />} />
         </Routes>
       </div>
     </Router>
