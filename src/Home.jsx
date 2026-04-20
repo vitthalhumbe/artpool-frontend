@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Star } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from './utils/api';
 import HeroImage from "./assets/hero.jpg";
 import ReviewSection from './submodels/ReviewSection';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const Home = () => {
   const [featuredArtworks, setFeaturedArtworks] = useState([]);
@@ -14,7 +13,7 @@ const Home = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    axios.get(`${API}/api/artworks/featured`)
+    api.get('/api/artworks/featured')
       .then(res => setFeaturedArtworks(res.data))
       .catch(err => console.error(err));
   }, []);
@@ -25,59 +24,73 @@ const Home = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white font-sans text-gray-900 selection:bg-blue-100">
-
-      <main className="pt-32 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center">
-        <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-6">
-          Discover, and Buy Original Art <br className="hidden md:block" /> from World-wide Artists.
+    <div className="min-h-screen bg-white dark:bg-gray-950 font-sans text-gray-900 dark:text-white selection:bg-blue-100">
+      <main className="relative pt-24 sm:pt-28 pb-12 sm:pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center overflow-hidden">
+  
+  {/* subtle background instead of wave */}
+  <div className="absolute inset-0 -z-10 bg-gradient-to-b from-blue-50/40 via-transparent to-transparent dark:from-gray-900"></div>
+        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-4 sm:mb-6 leading-tight">
+          Discover, and Buy Original Art
+          <br className="hidden md:block" />
+          from World-wide Artists.
         </h1>
-        <p className="text-lg text-gray-500 max-w-2xl mx-auto mb-10">
+
+        <p className="text-sm sm:text-base md:text-lg text-gray-500 dark:text-gray-400 max-w-xl sm:max-w-2xl mx-auto mb-8 sm:mb-10">
           Buy original art or hire world-class artists to draw custom pieces for you.
         </p>
 
-        <form onSubmit={handleSearch} className="max-w-2xl mx-auto relative mb-16">
+        {/* SEARCH */}
+        <form onSubmit={handleSearch} className="max-w-xl sm:max-w-2xl mx-auto relative mb-12 sm:mb-16">
           <div className="relative flex items-center">
-            <Search className="absolute left-4 text-gray-400" size={20} />
+            <Search className="absolute left-3 sm:left-4 text-gray-400" size={18} />
+
             <input
               type="text"
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
-              placeholder="Search for oil paintings, sketches, artists..."
-              className="w-full pl-12 pr-32 py-4 rounded-full border border-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              placeholder="Search artworks..."
+              className="w-full pl-10 sm:pl-12 pr-24 sm:pr-32 py-3 sm:py-4 rounded-full border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
             />
-            <button type="submit" className="absolute right-2 top-2 bottom-2 bg-blue-600 hover:bg-blue-700 text-white px-8 rounded-full font-medium transition-colors">
+
+            <button
+              type="submit"
+              className="absolute right-1.5 sm:right-2 top-1.5 bottom-1.5 bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-6 rounded-full text-sm sm:text-base font-medium"
+            >
               Search
             </button>
           </div>
         </form>
 
-        <div className="relative rounded-2xl overflow-hidden shadow-xl bg-gray-50 aspect-[16/8]">
+        {/* HERO IMAGE */}
+        <div className="relative rounded-xl sm:rounded-2xl overflow-hidden shadow-lg sm:shadow-xl bg-gray-50 dark:bg-gray-800 aspect-[16/9] sm:aspect-[16/8]">
           <img src={HeroImage} alt="Art showcase" className="w-full h-full object-cover" />
         </div>
       </main>
 
-      <section className="border-y border-gray-100 bg-white">
-        <div className="max-w-7xl mx-auto px-4 py-12 grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-          <div>
-            <div className="text-3xl font-bold text-gray-900 mb-1">10,000+</div>
-            <div className="text-xs font-semibold tracking-wider text-gray-500 uppercase">Active Users</div>
-          </div>
-          <div className="md:border-l md:border-r border-gray-100">
-            <div className="text-3xl font-bold text-gray-900 mb-1">5,000+</div>
-            <div className="text-xs font-semibold tracking-wider text-gray-500 uppercase">Sketches Sold</div>
-          </div>
-          <div>
-            <div className="text-3xl font-bold text-gray-900 mb-1">300+</div>
-            <div className="text-xs font-semibold tracking-wider text-gray-500 uppercase">Artists</div>
-          </div>
-        </div>
-      </section>
+      <div className="max-w-7xl mx-auto px-4 py-8 sm:py-12 grid grid-cols-3 gap-2 sm:gap-8 text-center">
+
+  <div>
+    <div className="text-lg sm:text-3xl font-bold">10,000+</div>
+    <div className="text-[10px] sm:text-xs text-gray-500 uppercase">Users</div>
+  </div>
+
+  <div className="sm:border-l sm:border-r border-gray-200 dark:border-gray-700">
+    <div className="text-lg sm:text-3xl font-bold">5,000+</div>
+    <div className="text-[10px] sm:text-xs text-gray-500 uppercase">Sold</div>
+  </div>
+
+  <div>
+    <div className="text-lg sm:text-3xl font-bold">300+</div>
+    <div className="text-[10px] sm:text-xs text-gray-500 uppercase">Artists</div>
+  </div>
+
+</div>
 
       <section className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-end mb-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 sm:gap-8">
           <div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">Featured Artworks</h2>
-            <p className="text-gray-500">This week's most liked pieces.</p>
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Featured Artworks</h2>
+            <p className="text-gray-500 dark:text-gray-400">This week's most liked pieces.</p>
           </div>
           <Link to="/gallery" className="text-blue-600 font-semibold hover:underline hidden sm:block">View Gallery →</Link>
         </div>
@@ -101,43 +114,51 @@ const Home = () => {
         )}
       </section>
 
-      <section className="bg-gray-50 py-20">
+      <section className="bg-gray-50 dark:bg-gray-900 py-20">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center text-gray-900 mb-8">What our community says</h2>
-          <ReviewSection
-            targetType="website"
-            targetId={null}
-            currentUser={currentUser}
-          />
+          <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-8">What our community says</h2>
+          <ReviewSection targetType="website" targetId={null} currentUser={currentUser} />
         </div>
       </section>
 
-      <footer className="py-12 border-t border-gray-200 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center">
-        <div className="text-xl font-bold mb-4 md:mb-0">ArtPool</div>
-        <div className="text-sm text-gray-400 mt-4 md:mt-0">© 2026 ArtPool Inc.</div>
-      </footer>
+      <footer className="py-4 border-t border-gray-200 dark:border-gray-800 max-w-7xl mx-auto px-4">
+
+  <div className="flex items-center justify-between text-xs sm:text-sm text-gray-500">
+
+    <span className="font-semibold text-gray-900 dark:text-white">ArtPool</span>
+
+    <div className="flex gap-3 sm:gap-6">
+      <a href="#">About</a>
+      <a href="#">Privacy</a>
+      <a href="#">Terms</a>
+      <a href="#">Contact</a>
+    </div>
+
+    <span className="text-gray-400">© 2026</span>
+
+  </div>
+
+</footer>
     </div>
   );
 };
 
 const ArtCard = ({ image, title, artist, price, sold, onClick }) => (
   <div className="group cursor-pointer" onClick={onClick}>
-    <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-4 relative">
+    <div className="aspect-square rounded-lg overflow-hidden mb-3 sm:mb-4">
       <img src={image} alt={title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
       {sold && (
-        <div className="absolute top-4 left-[-28px] w-28 bg-red-500 text-white text-xs font-bold text-center py-1 rotate-[-45deg] origin-center shadow-md">
-          SOLD
-        </div>
+        <div className="absolute top-4 left-[-28px] w-28 bg-red-500 text-white text-xs font-bold text-center py-1 rotate-[-45deg] origin-center shadow-md">SOLD</div>
       )}
     </div>
     <div className="flex justify-between items-start mb-4">
       <div>
-        <h3 className="font-bold text-gray-900">{title}</h3>
-        <p className="text-sm text-gray-500">{artist}</p>
+        <h3 className="font-semibold sm:font-bold text-sm sm:text-base">{title}</h3>
+        <p className="text-xs sm:text-sm text-gray-500">{artist}</p>
       </div>
-      <span className="font-bold text-gray-900">₹{price}</span>
+      <span className="font-bold text-gray-900 dark:text-white">₹{price}</span>
     </div>
-    <button className="w-full py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:border-gray-900 hover:text-gray-900 transition-colors">
+    <button className="w-full py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-gray-900 dark:hover:border-white hover:text-gray-900 dark:hover:text-white transition-colors">
       {sold ? 'Sold Out' : 'Buy Piece'}
     </button>
   </div>

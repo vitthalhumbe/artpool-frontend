@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import { Star, Loader2 } from 'lucide-react';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const StarInput = ({ value, onChange }) => (
   <div className="flex gap-1">
@@ -41,7 +40,7 @@ const ReviewSection = ({ targetType, targetId, currentUser }) => {
     try {
       const params = { targetType };
       if (targetId) params.targetId = targetId;
-      const res = await axios.get(`${API}/api/reviews`, { params });
+      const res = await api.get(`/api/reviews`, { params });
       setReviews(res.data.reviews);
       setAverage(res.data.average);
       setTotal(res.data.total);
@@ -60,7 +59,7 @@ const ReviewSection = ({ targetType, targetId, currentUser }) => {
     setLoading(true);
     setError('');
     try {
-      const res = await axios.post(`${API}/api/reviews`, {
+      const res = await api.post(`/api/reviews`, {
         reviewerId: currentUser._id,
         targetType,
         targetId: targetId || null,
@@ -81,58 +80,51 @@ const ReviewSection = ({ targetType, targetId, currentUser }) => {
 
   return (
     <div className="mt-4">
-      {/* Summary */}
       {total > 0 && (
         <div className="flex items-center gap-3 mb-4">
-          <span className="text-2xl font-bold text-gray-900">{average}</span>
+          <span className="text-2xl font-bold text-gray-900 dark:text-white">{average}</span>
           <StarDisplay value={average} />
-          <span className="text-sm text-gray-500">({total} reviews)</span>
+          <span className="text-sm text-gray-500 dark:text-gray-400">({total} reviews)</span>
         </div>
       )}
 
-      {/* Write review */}
       {currentUser && (
-        <div className="bg-gray-50 rounded-xl p-4 mb-4">
-          <p className="text-sm font-bold text-gray-700 mb-2">Leave a Review</p>
+        <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 mb-4">
+          <p className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Leave a Review</p>
           <StarInput value={rating} onChange={setRating} />
           <textarea
             value={text}
             onChange={e => setText(e.target.value)}
             placeholder="Share your thoughts..."
             rows={3}
-            className="w-full mt-3 px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            className="w-full mt-3 px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 resize-none"
           />
-          {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+          {error && <p className="text-red-500 dark:text-red-400 text-xs mt-1">{error}</p>}
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="mt-2 px-5 py-2 bg-black text-white text-sm font-bold rounded-xl hover:bg-gray-800 flex items-center gap-2"
+            className="mt-2 px-5 py-2 bg-black dark:bg-white dark:text-black text-white text-sm font-bold rounded-xl hover:bg-gray-800 dark:hover:bg-gray-100 flex items-center gap-2"
           >
             {loading ? <Loader2 size={14} className="animate-spin" /> : 'Submit'}
           </button>
         </div>
       )}
 
-      {/* Reviews list */}
       {fetching ? (
         <div className="flex justify-center py-4"><Loader2 className="animate-spin text-gray-400" size={20} /></div>
       ) : reviews.length === 0 ? (
-        <p className="text-sm text-gray-400 text-center py-4">No reviews yet. Be the first.</p>
+        <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-4">No reviews yet. Be the first.</p>
       ) : (
         <div className="space-y-3 max-h-60 overflow-y-auto">
           {reviews.map(r => (
             <div key={r._id} className="flex gap-3">
-              <img
-                src={r.reviewer?.profile?.avatar_url}
-                className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-                alt={r.reviewer?.username}
-              />
+              <img src={r.reviewer?.profile?.avatar_url} className="w-8 h-8 rounded-full object-cover flex-shrink-0" alt={r.reviewer?.username} />
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-gray-900">{r.reviewer?.username}</span>
+                  <span className="text-sm font-bold text-gray-900 dark:text-white">{r.reviewer?.username}</span>
                   <StarDisplay value={r.rating} />
                 </div>
-                <p className="text-sm text-gray-600 mt-0.5">{r.text}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mt-0.5">{r.text}</p>
               </div>
             </div>
           ))}

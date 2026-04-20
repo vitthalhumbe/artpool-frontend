@@ -53,38 +53,27 @@ const FAQ = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-24 pb-20 px-4">
-        
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 pt-24 pb-20 px-4">
       <div className="max-w-3xl mx-auto">
-        
         <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-4">Frequently Asked Questions</h1>
-          <p className="text-lg text-gray-600">Everything you need to know about the ArtPool platform.</p>
+          <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white mb-4">Frequently Asked Questions</h1>
+          <p className="text-lg text-gray-600 dark:text-gray-400">Everything you need to know about the ArtPool platform.</p>
         </div>
 
         <div className="space-y-4">
           {faqData.map((faq, index) => {
             const isOpen = openIndex === index;
-
             return (
-              <div 
-                key={index} 
-                className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
-              >
+              <div key={index} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
                 <button
                   onClick={() => toggleFAQ(index)}
                   className="w-full px-6 py-5 flex justify-between items-center text-left focus:outline-none"
                 >
-                  <span className="text-lg font-bold text-gray-900">{faq.question}</span>
-                  <motion.div
-                    animate={{ rotate: isOpen ? 180 : 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="flex-shrink-0 ml-4 text-blue-600"
-                  >
+                  <span className="text-lg font-bold text-gray-900 dark:text-white">{faq.question}</span>
+                  <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.3 }} className="flex-shrink-0 ml-4 text-blue-600">
                     <ChevronDown size={24} />
                   </motion.div>
                 </button>
-
                 <AnimatePresence>
                   {isOpen && (
                     <motion.div
@@ -93,7 +82,7 @@ const FAQ = () => {
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.3, ease: "easeInOut" }}
                     >
-                      <div className="px-6 pb-5 text-gray-600 leading-relaxed border-t border-gray-100 pt-4">
+                      <div className="px-6 pb-5 text-gray-600 dark:text-gray-400 leading-relaxed border-t border-gray-100 dark:border-gray-700 pt-4">
                         {faq.answer}
                       </div>
                     </motion.div>
@@ -103,7 +92,6 @@ const FAQ = () => {
             );
           })}
         </div>
-
       </div>
     </div>
   );

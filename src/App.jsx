@@ -1,26 +1,37 @@
-
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './Home'; // Your renamed original App.jsx
-import Profile from './Profile';
-import FAQ from './FAQ';
-import Gallery from './Gallery';
-import Login from './Login';
-import SignUp from './SignUp';
-import Navbar from './Navbar'
-import Messages from './Messages';
-// inside Routes:
-import Artists from './Artists';
-// inside Routes:
-import ResetPassword from './ResetPassword';
-import ForgotPassword from './ForgotPassword';
-import NotFound from './NotFound';
-// at the bottom of Routes, after all other routes:
-// inside Routes:
-
-import Commission from './Commission';
-import About from './About';
-
+import Profile from './pages/Profile';
+import FAQ from './pages/FAQ';
+import Gallery from './pages/Gallery';
+import Login from './Auth/Login';
+import SignUp from './Auth/SignUp';
+import Navbar from './components/Navbar'
+import Messages from './pages/Messages';
+import Artists from './pages/Artists';
+import ResetPassword from './Auth/ResetPassword';
+import ForgotPassword from './Auth/ForgotPassword';
+import NotFound from './components/NotFound';
+import Commission from './pages/Commission';
+import AuthSuccess from './Auth/AuthSucess';
+import About from './pages/About';
+import Blogs from './pages/Blogs';
+const GoogleAuthSuccess = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const data = params.get('data');
+    if (data) {
+      const user = JSON.parse(decodeURIComponent(data));
+      localStorage.setItem('token', user.token);
+      localStorage.setItem('user', JSON.stringify(user));
+      navigate('/');
+    } else {
+      navigate('/login');
+    }
+  }, []);
+  return <div className="min-h-screen flex items-center justify-center"><span className="text-gray-500">Signing you in...</span></div>;
+};
 const App = () => {
   return (
     <Router>
@@ -41,7 +52,9 @@ const App = () => {
           <Route path='/forgot-password' element={<ForgotPassword />} />
           <Route path='/commission' element={<Commission />} />
           <Route path='/about' element={<About />} />
+          <Route path='/blogs' element={<Blogs />} />
           <Route path='*' element={<NotFound />} />
+          <Route path='/auth/google/success' element={<GoogleAuthSuccess />} />
         </Routes>
       </div>
     </Router>

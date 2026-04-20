@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Send, Loader2 } from 'lucide-react';
-import axios from 'axios';
+import api from '../utils/api';
 import socket from '../socket';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const ChatWindow = ({ currentUser, otherUser, close }) => {
   const [messages, setMessages] = useState([]);
@@ -27,7 +26,7 @@ const ChatWindow = ({ currentUser, otherUser, close }) => {
 
   const fetchMessages = async () => {
     try {
-      const res = await axios.get(`${API}/api/messages/${currentUser._id}/${otherUser._id}`);
+      const res = await api.get(`/api/messages/${currentUser._id}/${otherUser._id}`);
       setMessages(res.data);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
@@ -50,14 +49,14 @@ const ChatWindow = ({ currentUser, otherUser, close }) => {
     setText('');
   };
 
-  return (
-    <div className="fixed bottom-6 right-6 w-80 h-[480px] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col z-[200]">
-      <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50 rounded-t-2xl">
+ return (
+    <div className="fixed bottom-6 right-6 w-80 h-[480px] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col z-[200]">
+      <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded-t-2xl">
         <div className="flex items-center gap-3">
           <img src={otherUser.profile?.avatar_url} className="w-8 h-8 rounded-full object-cover" alt="" />
-          <span className="font-bold text-sm text-gray-900">{otherUser.username}</span>
+          <span className="font-bold text-sm text-gray-900 dark:text-white">{otherUser.username}</span>
         </div>
-        <button onClick={close} className="p-1 hover:bg-gray-200 rounded-full"><X size={16} /></button>
+        <button onClick={close} className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"><X size={16} className="dark:text-gray-300" /></button>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -67,7 +66,7 @@ const ChatWindow = ({ currentUser, otherUser, close }) => {
           const isMine = (msg.sender._id || msg.sender) === currentUser._id;
           return (
             <div key={msg._id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[70%] px-3 py-2 rounded-2xl text-sm ${isMine ? 'bg-blue-600 text-white rounded-br-sm' : 'bg-gray-100 text-gray-900 rounded-bl-sm'}`}>
+              <div className={`max-w-[70%] px-3 py-2 rounded-2xl text-sm ${isMine ? 'bg-blue-600 text-white rounded-br-sm' : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-bl-sm'}`}>
                 {msg.text}
               </div>
             </div>
@@ -76,13 +75,13 @@ const ChatWindow = ({ currentUser, otherUser, close }) => {
         <div ref={bottomRef} />
       </div>
 
-      <div className="p-3 border-t border-gray-100 flex gap-2">
+      <div className="p-3 border-t border-gray-100 dark:border-gray-700 flex gap-2">
         <input
           value={text}
           onChange={e => setText(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && sendMessage()}
           placeholder="Type a message..."
-          className="flex-1 px-3 py-2 text-sm bg-gray-100 rounded-full outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex-1 px-3 py-2 text-sm bg-gray-100 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500 rounded-full outline-none focus:ring-2 focus:ring-blue-500"
         />
         <button onClick={sendMessage} className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700">
           <Send size={16} />
